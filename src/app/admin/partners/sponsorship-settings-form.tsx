@@ -14,7 +14,7 @@ import { Save, Loader2, Info } from 'lucide-react';
 import type { SponsorshipSettings } from '@/lib/types';
 import { Switch } from '@/components/ui/switch';
 
-const sponsorshipSettingsSchema: z.ZodType<SponsorshipSettings> = z.object({
+const schema = z.object({
   adminTelegramLink: z.string().url('Введите корректную ссылку.').max(1000, 'Максимум 1000 символов'),
   groupTelegramLink: z.string().url('Введите корректную ссылку.').max(1000, 'Максимум 1000 символов'),
   adminVkLink: z.string().url('Введите корректную ссылку.').max(1000, 'Максимум 1000 символов'),
@@ -22,7 +22,7 @@ const sponsorshipSettingsSchema: z.ZodType<SponsorshipSettings> = z.object({
   showGlobalSponsorCta: z.boolean(),
 });
 
-type SponsorshipSettingsFormValues = z.infer<typeof sponsorshipSettingsSchema>;
+type SponsorshipSettingsFormValues = z.infer<typeof schema>;
 
 export function SponsorshipSettingsForm({ initialSettings }: { initialSettings: SponsorshipSettings }) {
   const [isPending, startTransition] = useTransition();
@@ -30,8 +30,11 @@ export function SponsorshipSettingsForm({ initialSettings }: { initialSettings: 
   const { toast } = useToast();
 
   const form = useForm<SponsorshipSettingsFormValues>({
-    resolver: zodResolver(sponsorshipSettingsSchema),
-    defaultValues: initialSettings,
+    resolver: zodResolver(schema),
+    defaultValues: {
+        ...initialSettings,
+        showGlobalSponsorCta: initialSettings.showGlobalSponsorCta ?? true,
+    },
   });
 
   async function onSubmit(data: SponsorshipSettingsFormValues) {

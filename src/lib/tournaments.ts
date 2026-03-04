@@ -37,7 +37,7 @@ function sanitizePlayer(p: any): TournamentPlayerResult {
 }
 
 // Helper to safely convert various date formats to a JS Date object
-function toDate(value: any): Date {
+function valueToDate(value: any): Date {
   if (value instanceof Timestamp) {
     return value.toDate();
   }
@@ -70,8 +70,8 @@ export async function getTournaments(): Promise<Tournament[]> {
     
     return tournamentSnapshot.docs.map(doc => {
       const data = doc.data();
-      const eventDate = toDate(data.eventDate || data.date);
-      const parsedAt = toDate(data.parsedAt);
+      const eventDate = valueToDate(data.eventDate || data.date);
+      const parsedAt = valueToDate(data.parsedAt);
 
       return { 
           id: doc.id, 
@@ -110,9 +110,9 @@ export async function addTournaments(newTournaments: Omit<Tournament, 'id'>[]): 
 
             const dataToSet = { 
                 ...newT, 
-                eventDate: Timestamp.fromDate(toDate(eventDateValue)),
-                parsedAt: Timestamp.fromDate(toDate(parsedAtValue)),
-                date: Timestamp.fromDate(toDate(eventDateValue))
+                eventDate: Timestamp.fromDate(valueToDate(eventDateValue)),
+                parsedAt: Timestamp.fromDate(valueToDate(parsedAtValue)),
+                date: Timestamp.fromDate(valueToDate(eventDateValue))
             };
             
             delete (dataToSet as any).id;
@@ -140,8 +140,8 @@ export async function getTournamentById(id: string): Promise<Tournament | undefi
 
         if (docSnap.exists()) {
             const data = docSnap.data();
-            const eventDate = toDate(data.eventDate || data.date);
-            const parsedAt = toDate(data.parsedAt);
+            const eventDate = valueToDate(data.eventDate || data.date);
+            const parsedAt = valueToDate(data.parsedAt);
 
             return { 
                 id: docSnap.id, 
