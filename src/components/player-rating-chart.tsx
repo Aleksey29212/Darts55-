@@ -202,7 +202,9 @@ export function PlayerRatingChart({ tournaments, isStandalone = true }: PlayerRa
 
   return (
     <Card className="glassmorphism border-2 border-primary/10 shadow-2xl overflow-hidden">
-      {chartContent}
+      <CardContent className="p-0">
+        {chartContent}
+      </CardContent>
     </Card>
   );
 }
