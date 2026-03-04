@@ -12,7 +12,7 @@ import { Activity, Calendar } from 'lucide-react';
 import { cn, formatDate } from '@/lib/utils';
 import { useMemo, useState, useEffect } from 'react';
 import { Timestamp } from 'firebase/firestore';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 const chartConfig = {
   points: {
