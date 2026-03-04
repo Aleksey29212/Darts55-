@@ -54,8 +54,10 @@ function Calendar({
         day_hidden: "invisible",
         ...classNames,
       }}
-      iconLeft={<ChevronLeft className="h-4 w-4" />}
-      iconRight={<ChevronRight className="h-4 w-4" />}
+      components={{
+        IconLeft: ({ className }: { className?: string }) => <ChevronLeft className={cn("h-4 w-4", className)} />,
+        IconRight: ({ className }: { className?: string }) => <ChevronRight className={cn("h-4 w-4", className)} />,
+      }}
       {...props}
     />
   )
@@ -63,3 +65,4 @@ function Calendar({
 Calendar.displayName = "Calendar"
 
 export { Calendar }
+

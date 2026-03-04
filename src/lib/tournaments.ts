@@ -37,26 +37,21 @@ function sanitizePlayer(p: any): TournamentPlayerResult {
 }
 
 // Helper to safely convert various date formats to a JS Date object
-function valueToDate(value: any): Date {
-    if (value instanceof Timestamp) {
-        return value.toDate();
+function toDate(value: string | number | Date | Timestamp | undefined): Date {
+  if (value instanceof Timestamp) {
+    return value.toDate();
+  }
+  if (value instanceof Date) {
+    return value;
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) {
+        return d;
     }
-    if (value instanceof Date) {
-        return value;
-    }
-    // Handle Firestore-like object that might not be a Timestamp instance
-    if (typeof value === 'object' && value !== null && 'seconds' in value && 'nanoseconds' in value) {
-        return new Timestamp(value.seconds, value.nanoseconds).toDate();
-    }
-    // Handle string or number
-    if (typeof value === 'string' || typeof value === 'number') {
-        const d = new Date(value);
-        if (!isNaN(d.getTime())) {
-            return d;
-        }
-    }
-    // Fallback for invalid or unexpected types
-    return new Date();
+  }
+  // Fallback for invalid or unexpected types
+  return new Date();
 }
 
 export async function getTournaments(): Promise<Tournament[]> {
@@ -71,8 +66,8 @@ export async function getTournaments(): Promise<Tournament[]> {
     
     return tournamentSnapshot.docs.map(doc => {
       const data = doc.data();
-      const eventDate = valueToDate(data.eventDate || data.date);
-      const parsedAt = valueToDate(data.parsedAt);
+      const eventDate = toDate(data.eventDate || data.date);
+      const parsedAt = toDate(data.parsedAt);
 
       return { 
           id: doc.id, 
@@ -111,9 +106,9 @@ export async function addTournaments(newTournaments: Omit<Tournament, 'id'>[]): 
 
             const dataToSet = { 
                 ...newT, 
-                eventDate: Timestamp.fromDate(valueToDate(eventDateValue)),
-                parsedAt: Timestamp.fromDate(valueToDate(parsedAtValue)),
-                date: Timestamp.fromDate(valueToDate(eventDateValue))
+                eventDate: Timestamp.fromDate(toDate(eventDateValue)),
+                parsedAt: Timestamp.fromDate(toDate(parsedAtValue)),
+                date: Timestamp.fromDate(toDate(eventDateValue))
             };
             
             delete (dataToSet as any).id;
@@ -141,8 +136,8 @@ export async function getTournamentById(id: string): Promise<Tournament | undefi
 
         if (docSnap.exists()) {
             const data = docSnap.data();
-            const eventDate = valueToDate(data.eventDate || data.date);
-            const parsedAt = valueToDate(data.parsedAt);
+            const eventDate = toDate(data.eventDate || data.date);
+            const parsedAt = toDate(data.parsedAt);
 
             return { 
                 id: docSnap.id, 
@@ -194,3 +189,4 @@ export async function clearAllTournamentData(): Promise<void> {
         throw e;
     }
 }
+
