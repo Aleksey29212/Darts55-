@@ -30,11 +30,7 @@ export default async function TournamentsPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {tournaments.length > 0 ? tournaments.sort((a,b) => {
-                                 const dateA = a.date instanceof Timestamp ? a.date.toMillis() : new Date(a.date).getTime();
-                                 const dateB = b.date instanceof Timestamp ? b.date.toMillis() : new Date(b.date).getTime();
-                                 return dateB - dateA;
-                            }).map((tournament) => (
+                            {tournaments.length > 0 ? tournaments.sort((a,b) => new Date(b.date as string).getTime() - new Date(a.date as string).getTime()).map((tournament) => (
                                 <TableRow key={tournament.id}>
                                     <TableCell className="font-medium">{tournament.name}</TableCell>
                                     <TableCell>{formatDate(tournament.date as string)}</TableCell>

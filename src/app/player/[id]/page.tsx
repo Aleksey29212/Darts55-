@@ -148,11 +148,7 @@ export default async function PlayerPage({
       });
 
     tournamentsForHistory = (await Promise.all(historyPromises))
-      .sort((a, b) => {
-        const dateA = a.tournamentDate instanceof Timestamp ? a.tournamentDate.toMillis() : new Date(a.tournamentDate as string).getTime();
-        const dateB = b.tournamentDate instanceof Timestamp ? b.tournamentDate.toMillis() : new Date(b.tournamentDate as string).getTime();
-        return dateB - dateA;
-      });
+      .sort((a, b) => new Date(b.tournamentDate as string).getTime() - new Date(a.tournamentDate as string).getTime());
 
     pageSubtitle = activeLeague === 'general' 
         ? `Карьерная статистика (Общий зачет)` 

@@ -119,11 +119,7 @@ export function TournamentManagement({ tournaments, leagues }: { tournaments: To
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {tournaments.sort((a,b) => {
-                            const dateA = a.date instanceof Timestamp ? a.date.toMillis() : new Date(a.date).getTime();
-                            const dateB = b.date instanceof Timestamp ? b.date.toMillis() : new Date(b.date).getTime();
-                            return dateB - dateA;
-                        }).map((tournament) => (
+                        {tournaments.sort((a,b) => new Date(b.date as string).getTime() - new Date(a.date as string).getTime()).map((tournament) => (
                             <TableRow key={tournament.id}>
                                 <TableCell className="font-medium">{tournament.name}</TableCell>
                                 <TableCell><Badge variant="secondary">{leagues.find(l => l.id === tournament.league)?.name || tournament.league}</Badge></TableCell>
