@@ -1,9 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  output: 'standalone',
   /* Оптимизация для работы на Timeweb теперь не является основной, Vercel handle-ит это автоматически */
   images: {
-    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
