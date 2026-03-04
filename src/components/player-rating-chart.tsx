@@ -45,7 +45,9 @@ export function PlayerRatingChart({ tournaments, isStandalone = true }: PlayerRa
     if (!tournaments || tournaments.length === 0) return data;
 
     const sortedTournaments = [...tournaments].sort((a, b) => {
-      return new Date(a.tournamentDate as string).getTime() - new Date(b.tournamentDate as string).getTime();
+      const dateA = a.tournamentDate instanceof Timestamp ? a.tournamentDate.toMillis() : new Date(a.tournamentDate).getTime();
+      const dateB = b.tournamentDate instanceof Timestamp ? b.tournamentDate.toMillis() : new Date(b.tournamentDate).getTime();
+      return dateA - dateB;
     });
 
     let cumulativePoints = 0;
