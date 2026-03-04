@@ -14,7 +14,7 @@ import { Save, Loader2, Info } from 'lucide-react';
 import type { SponsorshipSettings } from '@/lib/types';
 import { Switch } from '@/components/ui/switch';
 
-const sponsorshipSettingsSchema = z.object({
+const sponsorshipSettingsSchema: z.ZodType<SponsorshipSettings> = z.object({
   adminTelegramLink: z.string().url('Введите корректную ссылку.').max(1000, 'Максимум 1000 символов'),
   groupTelegramLink: z.string().url('Введите корректную ссылку.').max(1000, 'Максимум 1000 символов'),
   adminVkLink: z.string().url('Введите корректную ссылку.').max(1000, 'Максимум 1000 символов'),

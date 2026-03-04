@@ -37,12 +37,16 @@ function sanitizePlayer(p: any): TournamentPlayerResult {
 }
 
 // Helper to safely convert various date formats to a JS Date object
-function toDate(value: string | number | Date | Timestamp | undefined): Date {
+function toDate(value: any): Date {
   if (value instanceof Timestamp) {
     return value.toDate();
   }
   if (value instanceof Date) {
     return value;
+  }
+  // Handle Firestore-like object that might not be a Timestamp instance
+  if (typeof value === 'object' && value !== null && 'seconds' in value && 'nanoseconds' in value) {
+      return new Timestamp(value.seconds, value.nanoseconds).toDate();
   }
   if (typeof value === 'string' || typeof value === 'number') {
     const d = new Date(value);
@@ -189,4 +193,3 @@ export async function clearAllTournamentData(): Promise<void> {
         throw e;
     }
 }
-
