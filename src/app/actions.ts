@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getPlayerProfiles, updatePlayerProfiles, clearAllPlayerProfiles } from '@/lib/players';
@@ -236,7 +237,7 @@ export async function updatePlayer(player: PlayerProfile) {
   try {
     const db = getDb();
     if (!db) {
-        return { success: false, message: 'Ошибка базы данных: нет подключения.' };
+        throw new Error('Ошибка базы данных: нет подключения.');
     }
     await updatePlayerProfiles([player]);
     revalidateTag('rankings');
@@ -251,7 +252,7 @@ export async function updatePlayer(player: PlayerProfile) {
 export async function updatePlayerAvatar(playerId: string, avatarUrl: string | null) {
     const db = getDb();
     if (!db) {
-        return { success: false, message: "Ошибка: База данных недоступна." };
+        throw new Error("Ошибка: База данных недоступна.");
     }
     try {
         const playerRef = doc(db, 'players', playerId);
@@ -279,7 +280,7 @@ export async function updatePlayerAvatar(playerId: string, avatarUrl: string | n
 export async function deletePlayerAction(playerId: string) {
     const db = getDb();
     if (!db) {
-        return { success: false, message: 'Ошибка: База данных недоступна.' };
+        throw new Error('Ошибка: База данных недоступна.');
     }
     try {
         await deleteDoc(doc(db, 'players', playerId));
@@ -296,7 +297,7 @@ export async function clearAllPlayerData() {
   try {
     const db = getDb();
     if (!db) {
-      return { success: false, message: 'Ошибка: База данных недоступна.' };
+      throw new Error('Ошибка: База данных недоступна.');
     }
     await clearAllPlayerProfiles();
     await clearAllTournamentData();
@@ -313,7 +314,7 @@ export async function clearTournamentsAction() {
   try {
     const db = getDb();
     if (!db) {
-      return { success: false, message: 'Ошибка: База данных недоступна.' };
+      throw new Error('Ошибка: База данных недоступна.');
     }
     await clearAllTournamentData();
     revalidateTag('rankings');
@@ -329,7 +330,7 @@ export async function saveScoringSettings(leagueId: LeagueId, data: ScoringSetti
   try {
     const db = getDb();
     if (!db) {
-        return { success: false, message: 'Ошибка базы данных: нет подключения.' };
+        throw new Error('Ошибка базы данных: нет подключения.');
     }
     await updateScoringSettings(leagueId, data);
     revalidateTag('rankings');
@@ -345,7 +346,7 @@ export async function saveLeagueSettings(data: AllLeagueSettings) {
   try {
     const db = getDb();
     if (!db) {
-        return { success: false, message: 'Ошибка базы данных: нет подключения.' };
+        throw new Error('Ошибка базы данных: нет подключения.');
     }
     await updateLeagueSettings(data);
     revalidateTag('rankings');
@@ -361,7 +362,7 @@ export async function deleteTournamentAction(tournamentId: string) {
     try {
         const db = getDb();
         if (!db) {
-          return { success: false, message: 'Ошибка: База данных недоступна.' };
+          throw new Error('Ошибка: База данных недоступна.');
         }
         await deleteTournamentById(tournamentId);
         revalidateTag('rankings');
@@ -378,7 +379,7 @@ export async function saveBackgroundAction(prevState: unknown, formData: FormDat
   try {
     const db = getDb();
     if (!db) {
-        return { success: false, message: 'Ошибка базы данных: нет подключения.' };
+        throw new Error('Ошибка базы данных: нет подключения.');
     }
     if (intent === 'reset') {
         await updateBackgroundUrl('');
@@ -398,7 +399,7 @@ export async function saveSponsorshipAction(data: SponsorshipSettings) {
     try {
         const db = getDb();
         if (!db) {
-            return { success: false, message: 'Ошибка базы данных: нет подключения.' };
+            throw new Error('Ошибка базы данных: нет подключения.');
         }
         await updateSponsorshipSettings(data);
         revalidatePath('/', 'layout');
@@ -412,7 +413,7 @@ export async function saveSponsorshipAction(data: SponsorshipSettings) {
 export async function logVisitAction() {
     const db = getDb();
     if (!db) {
-        // Silently fail if DB is not available
+        console.error("Database not available for logVisitAction. Silently failing.");
         return;
     }
   try {
@@ -432,7 +433,7 @@ export async function logVisitAction() {
 export async function logSponsorClickAction(playerId: string, playerName: string, sponsorName: string) {
     const db = getDb();
     if (!db) {
-        // Silently fail
+        console.error("Database not available for logSponsorClickAction. Silently failing.");
         return { success: false };
     }
     try {
@@ -512,5 +513,3 @@ export async function triggerDeploymentAction() {
         return { success: false, message };
     }
 }
-
-    
