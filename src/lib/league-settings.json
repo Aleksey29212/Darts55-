@@ -1,0 +1,18 @@
+{
+  "general": {
+    "name": "Общий рейтинг",
+    "enabled": true
+  },
+  "premier": {
+    "name": "Премьер-лига",
+    "enabled": false
+  },
+  "first": {
+    "name": "Первая лига",
+    "enabled": false
+  },
+  "cricket": {
+    "name": "Крикет",
+    "enabled": false
+  }
+}

@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DartBrig Pro v106 | Infinity</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;800&family=Russo+One&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #ff6b00; 
+            --bg: #09090b; 
+            --glass: rgba(20, 20, 25, 0.95);
+            --border: rgba(255, 255, 255, 0.1);
+            --text: #ffffff;
+            --gold: #ffd700; --silver: #c0c0c0; --bronze: #cd7f32;
+            --success: #00e676; --error: #ff4444;
+        }
+
+        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Montserrat', sans-serif; color: var(--text); margin: 0; padding: 10px;
+            background-color: var(--bg);
+            background-image: radial-gradient(circle at 50% 0%, #1a1a20 0%, #000 100%);
+            background-attachment: fixed; min-height: 100vh;
+        }
+
+        ::-webkit-scrollbar { width: 6px; background: #000; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+        .wrapper { max-width: 1600px; margin: 0 auto; padding-bottom: 60px; }
+
+        /* UI ELEMENTS */
+        .glass-panel { background: var(--glass); border: 1px solid var(--border); border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); padding: 20px; margin-bottom: 20px; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; margin-bottom: 20px; background: var(--glass); border: 1px solid var(--border); border-radius: 20px; }
+        h1 { margin: 0; font-family: 'Russo One'; font-size: 1.5rem; letter-spacing: 1px; }
+        h1 span { color: var(--primary); }
+
+        .btn { padding: 0 15px; height: 35px; border-radius: 6px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; font-family: 'Montserrat'; text-transform: uppercase; font-size: 0.7rem; color:#fff; display: flex; align-items: center; justify-content: center; gap:5px; }
+        .btn-primary { background: var(--primary); color: #000; }
+        .btn-ghost { background: #222; border: 1px solid #333; }
+        .btn-danger { background: rgba(255,68,68,0.2); color: #ff4444; }
+        .btn-success { background: rgba(0,230,118,0.2); color: #00e676; border: 1px solid #00e676; }
+        
+        input, select { background: #111; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 6px; width: 100%; }
+
+        /* CONTROLS */
+        .input-mini { width: 70px; text-align: center; background: #111; border: 1px solid #333; color: #fff; padding: 5px; border-radius: 4px; font-weight: bold; }
+        .switch { position: relative; display: inline-block; width: 34px; height: 18px; margin-right: 10px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .3s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(16px); }
+
+        /* PLAYER CARD */
+        .player-card { 
+            width: 100%; aspect-ratio: 2/3; max-width: 400px; margin: 0 auto;
+            background: radial-gradient(circle at 50% 0%, #2a2a30 0%, #09090b 100%); 
+            border: 2px solid var(--primary); border-radius: 20px; 
+            overflow: hidden; box-shadow: 0 10px 50px rgba(0,0,0,0.5); 
+            display: flex; flex-direction: column; position: relative;
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+        .pc-header { padding: 20px; display: flex; justify-content: space-between; z-index: 5; pointer-events: none; }
+        .pc-rank { font-family: 'Russo One'; font-size: 2.5rem; color: var(--primary); line-height: 0.8; }
+        .pc-total { font-family: 'Russo One'; font-size: 2rem; color: #fff; text-align: right; pointer-events: auto; }
+        
+        .pc-avatar-area { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; margin-top: -10px; z-index: 2; overflow: hidden; cursor: pointer; }
+        .pc-avatar { width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; font-size: 4rem; font-weight: bold; color: #333; position: relative; z-index: 2; transition: 0.1s; }
+        .pc-avatar.framed { border-radius: 50%; background: #111; border: 4px solid var(--primary); overflow: hidden; box-shadow: 0 0 30px #000; }
+        .pc-avatar img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+        
+        .pc-name { font-family: 'Russo One'; font-size: 1.8rem; margin-top: 15px; text-transform: uppercase; color: #fff; text-shadow: 0 4px 10px #000; z-index: 3; text-align: center; pointer-events: auto; }
+        
+        /* MEDALS & BADGES */
+        .pc-medals { display: flex; justify-content: center; gap: 15px; margin-bottom: 10px; z-index: 5; background: rgba(0,0,0,0.5); padding: 8px 15px; border-radius: 20px; width: fit-content; align-self: center; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); }
+        .medal-item { display: flex; align-items: center; gap: 5px; font-size: 0.9rem; font-weight: bold; }
+        .m-gold { color: var(--gold); text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); } 
+        .m-silver { color: var(--silver); text-shadow: 0 0 10px rgba(192, 192, 192, 0.5); } 
+        .m-bronze { color: var(--bronze); text-shadow: 0 0 10px rgba(205, 127, 50, 0.5); }
+
+        .pc-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: rgba(255,255,255,0.1); backdrop-filter: blur(5px); width: 100%; position: absolute; bottom: 0; left: 0; z-index: 4; border-top: 1px solid rgba(255,255,255,0.1); transition: transform 0.1s; pointer-events: auto; }
+        .pc-stat-box { padding: 10px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.6); }
+        .pc-val { font-family: 'Russo One'; font-size: 1.1rem; color: #fff; }
+        .pc-lbl { font-size: 0.6rem; color: #aaa; text-transform: uppercase; font-weight: bold; }
+        
+        /* ADMIN */
+        .admin-panel { display: none; flex-direction: column; gap: 15px; border-left: 3px solid var(--primary); }
+        body.is-admin .admin-panel { display: flex; }
+        .admin-gate { position: fixed; bottom: 10px; right: 15px; font-family: 'Times New Roman'; font-size: 1.5rem; opacity: 0.1; cursor: pointer; z-index: 9999; }
+        .admin-edit-panel { display: none; flex-direction: column; gap: 10px; background: #111; padding: 10px; z-index: 10; }
+        body.is-admin .admin-edit-panel { display: flex; }
+        body.is-admin .editable { border-bottom: 1px dashed rgba(255,107,0,0.5); }
+
+        .range-slider { width: 100%; height: 4px; background: #333; -webkit-appearance: none; border-radius: 2px; }
+        .range-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: var(--primary); border-radius: 50%; }
+
+        .setting-item { display: flex; align-items: center; gap: 8px; background: #1a1a1a; padding: 10px; border-radius: 8px; }
+        
+        /* TABLE */
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0 4px; }
+        th { text-align: left; color: #888; font-size: 0.7rem; padding: 10px; }
+        td { background: rgba(255,255,255,0.02); padding: 10px 15px; vertical-align: middle; }
+        tr.clickable-row:hover td { background: rgba(255,107,0,0.1); cursor: pointer; color: #fff; }
+        
+        .base-cell { text-align: center; color: #ccc; }
+        .bonus-cell { color: var(--success); font-weight: bold; text-align: center; }
+        .score-cell { font-weight: bold; text-align: right; }
+
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #222; padding: 10px 25px; border-radius: 50px; border: 1px solid var(--primary); z-index: 10000; animation: slideUp 0.3s; }
+        @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+        @media (max-width: 1000px) { .main-layout { grid-template-columns: 1fr; } .right-column { order: -1; } .player-card { display: none; } .player-card.active { display: flex; } }
+        .main-layout { display: grid; grid-template-columns: 1fr 400px; gap: 20px; align-items: start; }
+        .right-column { position: sticky; top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <header>
+        <h1>DARTBRIG <span>PRO v106</span></h1>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div id="adminBadge" style="display:none; color:var(--success); font-size:0.6rem; font-weight:800; padding:5px 10px; border:1px solid var(--success); border-radius:4px;">ADMIN</div>
+            <button class="btn btn-primary" onclick="App.UI.export()">XLSX</button>
+        </div>
+    </header>
+
+    <div class="admin-panel glass-panel">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom: 20px;">
+            <input type="text" id="tourInput" placeholder="ID турниров (10992...)" style="flex:1;">
+            <button id="loadBtn" class="btn btn-primary" onclick="App.Logic.process()">ЗАГРУЗИТЬ</button>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px;">
+            <div style="background:#151515; padding:15px; border-radius:10px; display:flex; gap:10px;">
+                <select id="adminPlayerSelect" style="flex:1;"><option value="">Выбрать игрока...</option></select>
+                <label class="btn btn-success" style="cursor:pointer; flex:1; text-align:center;">ФОТО <input type="file" id="adminPhotoInput" hidden onchange="App.Media.handleAdminUpload(this)"></label>
+            </div>
+            <button class="btn btn-ghost" onclick="App.UI.toggleSettings()">НАСТРОЙКИ БАЛЛОВ</button>
+            <button class="btn btn-danger" onclick="App.Admin.logout()">ВЫХОД</button>
+        </div>
+
+        <div id="settingsContainer" style="display:none; margin-top:15px; padding-top:15px; border-top:1px solid #333;">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:15px;">
+                <div class="setting-item"><span>1 Место</span><input type="number" id="base1" class="input-mini" oninput="App.Logic.updateConfig()"></div>
+                <div class="setting-item"><span>2 Место</span><input type="number" id="base2" class="input-mini" oninput="App.Logic.updateConfig()"></div>
+                <div class="setting-item"><span>3 Место</span><input type="number" id="base3" class="input-mini" oninput="App.Logic.updateConfig()"></div>
+                <div class="setting-item"><span style="color:var(--success); font-weight:bold;">Остальные</span><input type="number" id="baseRest" class="input-mini" oninput="App.Logic.updateConfig()" title="Баллы всем остальным"></div>
+                <div class="setting-item"><label class="switch"><input type="checkbox" id="usePart" onchange="App.Logic.updateConfig()"><span class="slider"></span></label><span>Участие</span><input type="number" id="wPart" class="input-mini" oninput="App.Logic.updateConfig()"></div>
+                
+                <div class="setting-item"><label class="switch"><input type="checkbox" id="use180" onchange="App.Logic.updateConfig()"><span class="slider"></span></label><span>180</span><input type="number" id="w180" class="input-mini" oninput="App.Logic.updateConfig()"></div>
+                <div class="setting-item"><label class="switch"><input type="checkbox" id="useHi" onchange="App.Logic.updateConfig()"><span class="slider"></span></label><span>HiOut</span><input type="number" id="wHi" class="input-mini" oninput="App.Logic.updateConfig()"></div>
+                <div class="setting-item"><label class="switch"><input type="checkbox" id="useAvg" onchange="App.Logic.updateConfig()"><span class="slider"></span></label><span>Avg</span><input type="number" id="wAvg" class="input-mini" oninput="App.Logic.updateConfig()"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <div class="glass-panel">
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                <h3 style="margin:0; font-size:0.9rem; color:#888;">РЕЙТИНГ</h3>
+                <input type="text" id="searchBox" placeholder="Поиск..." style="width:150px; padding:8px;" oninput="App.UI.render()">
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th width="40">#</th><th>Игрок</th><th style="text-align:center">Игры</th><th style="text-align:center">База</th><th style="text-align:center">Бонус</th><th style="text-align:right">Сумма</th></tr></thead>
+                    <tbody id="rankBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="right-column">
+            <div id="playerCardContainer" style="display:none;" ondrop="App.Media.drop(event)" ondragover="event.preventDefault()">
+                <div id="captureNode" class="player-card">
+                    <div class="pc-header">
+                        <div><div class="pc-rank"><span id="pcRankNum">#1</span>RANK</div></div>
+                        <div style="text-align:right"><div class="pc-total editable" contenteditable="false" id="pcTotalScore">0</div><div style="font-size:0.6rem;color:#888;font-weight:bold">POINTS</div></div>
+                    </div>
+                    
+                    <div class="pc-avatar-area" onclick="if(App.Admin.isEditing()) document.getElementById('cardPhotoInput').click()">
+                        <div style="position:absolute; width:100%; height:100%; opacity:0.2; pointer-events:none;"><canvas id="radarChart"></canvas></div>
+                        <div class="pc-avatar framed" id="pcAvatar"></div>
+                        <div class="pc-name editable" contenteditable="false" id="pcName">PLAYER</div>
+                        
+                        <div class="pc-medals" id="pcMedals" style="display:none;">
+                            <div class="medal-item m-gold"><i class="fas fa-medal"></i> <span id="cntGold">0</span></div>
+                            <div class="medal-item m-silver"><i class="fas fa-medal"></i> <span id="cntSilver">0</span></div>
+                            <div class="medal-item m-bronze"><i class="fas fa-medal"></i> <span id="cntBronze">0</span></div>
+                        </div>
+                    </div>
+
+                    <div class="pc-stats-grid" id="pcStatsGrid">
+                        <div class="pc-stat-box"><span class="pc-lbl">180s</span><span class="pc-val editable" contenteditable="false" id="pc180">0</span></div>
+                        <div class="pc-stat-box"><span class="pc-lbl">HI-OUT</span><span class="pc-val editable" contenteditable="false" id="pcHi">0</span></div>
+                        <div class="pc-stat-box"><span class="pc-lbl">AVG</span><span class="pc-val editable" contenteditable="false" id="pcAvg">0.0</span></div>
+                        <div class="pc-stat-box"><span class="pc-lbl">GAMES</span><span class="pc-val editable" contenteditable="false" id="pcTours">0</span></div>
+                        
+                        <div class="pc-stat-box" style="justify-content: center; background:rgba(255,107,0,0.15);">
+                            <span class="pc-lbl" style="margin-right:5px;">BEST RANK:</span><span class="pc-val" id="pcBestRank">-</span>
+                        </div>
+                        <div class="pc-stat-box" style="justify-content: center; background:rgba(255,107,0,0.15);">
+                            <span class="pc-lbl" style="margin-right:5px;">WIN RATE:</span><span class="pc-val" id="pcWinRate">0%</span>
+                        </div>
+                    </div>
+
+                    <div class="admin-edit-panel">
+                        <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:#888;"><span>IMG ZOOM</span><span>POS</span></div>
+                        <input type="range" class="range-slider" id="edZoom" min="50" max="200" value="100" oninput="App.Admin.updateTransform()">
+                        <div style="display:flex; gap:5px;">
+                            <input type="range" class="range-slider" id="edX" min="-100" max="100" value="0" oninput="App.Admin.updateTransform()">
+                            <input type="range" class="range-slider" id="edY" min="-100" max="100" value="0" oninput="App.Admin.updateTransform()">
+                        </div>
+                        <div style="display:flex; gap:5px; margin-top:5px;">
+                            <button class="btn btn-ghost" onclick="App.UI.toggleAvatarFrame()">O</button>
+                            <label class="btn btn-ghost" style="cursor:pointer; flex:1; text-align:center;">ФОТО <input type="file" id="cardPhotoInput" hidden onchange="App.Media.handleCardUpload(this)"></label>
+                            <button class="btn btn-success" onclick="App.Admin.saveCardChanges()">💾</button>
+                        </div>
+                    </div>
+
+                    <div style="padding:15px; background:#000; display:flex; gap:5px;">
+                        <button class="btn btn-primary" style="flex:1" onclick="App.UI.downloadCard()">СКАЧАТЬ</button>
+                        <button class="btn btn-ghost" onclick="App.UI.closeCardView()">X</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="defaultStats">
+                <div class="glass-panel">
+                    <h3 style="margin:0 0 10px 0; font-size:0.8rem; color:#888;">ТОП-10</h3>
+                    <div style="height:250px;"><canvas id="scoreChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+<div class="admin-gate" onclick="App.Admin.login()">π</div>
+
+<script>
+/** DATABASE v106 */
+const PhotoDB = {
+    db: null,
+    init() { return new Promise(r => { const q = indexedDB.open('DBv106', 1); q.onupgradeneeded = e => e.target.result.createObjectStore('images'); q.onsuccess = e => { this.db = e.target.result; r(); }; q.onerror = () => r(); }); },
+    async save(n, b) { if (!this.db) await this.init(); if(!this.db) return; return new Promise(r => { const t = this.db.transaction('images', 'readwrite'); t.objectStore('images').put(b, n); t.oncomplete = r; }); },
+    async get(n) { if (!this.db) await this.init(); if(!this.db) return null; return new Promise(r => { const q = this.db.transaction('images', 'readonly').objectStore('images').get(n); q.onsuccess = () => r(q.result); }); },
+    async delete(n) { if (!this.db) await this.init(); if(!this.db) return; const t = this.db.transaction('images', 'readwrite'); t.objectStore('images').delete(n); }
+};
+
+const App = {
+    state: { players: {}, history: {}, loaded: [], config: { base1: 100, base2: 80, base3: 60, baseRest: 1, wPart: 0, usePart: false, w180: 0, wHi: 0, wAvg: 0, hiLimit: 100, avgLimit: 60 } },
+    chartInstance: null, radarInstance: null, adminSelectedPlayer: null,
+
+    async init() {
+        const s = localStorage.getItem('db_v106');
+        if (s) try { this.state = { ...this.state, ...JSON.parse(s) }; } catch(e) {}
+        if (sessionStorage.getItem('db_admin_v106')) App.Admin.enableMode();
+        
+        const c = this.state.config;
+        ['base1','base2','base3','baseRest','wPart','w180','wHi','wAvg'].forEach(k=>{ const el=document.getElementById(k); if(el) el.value=c[k]!==undefined?c[k]:0; });
+        ['usePart','use180','useHi','useAvg'].forEach(k=>{ const el=document.getElementById(k); if(el) el.checked=c[k]||false; });
+
+        await PhotoDB.init();
+        this.UI.render();
+        const ctn = document.getElementById('playerCardContainer');
+        ctn.ondrop = (e) => App.Media.drop(e); ctn.ondragover = (e) => e.preventDefault();
+    },
+
+    Logic: {
+        async process() {
+            const ids = document.getElementById('tourInput').value.match(/\d+/g);
+            if (!ids) return App.UI.toast("Нет ID");
+            const btn = document.getElementById('loadBtn'); btn.innerHTML = '...';
+            for (let id of ids) {
+                if (!App.state.loaded.includes(id)) {
+                    const ts = Date.now();
+                    const proxies = [
+                        `https://api.allorigins.win/get?url=${encodeURIComponent(`https://dartsbase.ru/tournaments/${id}/stats`)}&t=${ts}`,
+                        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`https://dartsbase.ru/tournaments/${id}/stats`)}&t=${ts}`,
+                        `https://corsproxy.io/?${encodeURIComponent(`https://dartsbase.ru/tournaments/${id}/stats`)}`
+                    ];
+                    let success = false;
+                    for (let url of proxies) {
+                        try {
+                            const r = await fetch(url); if (!r.ok) continue;
+                            let html = ""; if (url.includes('allorigins')) html = (await r.json()).contents; else html = await r.text();
+                            if (html && html.length > 500 && this.parse(html, id) > 0) { success = true; break; }
+                        } catch(e) {}
+                    }
+                    if (!success) App.UI.toast(`ID ${id} Ошибка`, "error");
+                }
+            }
+            btn.innerText = "ЗАГРУЗИТЬ"; this.recalc(); this.manualSave(); App.UI.render();
+            document.getElementById('tourInput').value = '';
+        },
+        parse(h, id) {
+            const doc = new DOMParser().parseFromString(h, "text/html");
+            const p = [];
+            doc.querySelectorAll('tr').forEach(r => {
+                const c = r.querySelectorAll('td');
+                if (c.length > 5 && !isNaN(parseInt(c[0].innerText))) {
+                    const si = v => parseInt(v) || 0, sf = v => parseFloat(v ? v.replace(',', '.') : 0) || 0;
+                    p.push({ n: c[1].innerText.trim(), r: parseInt(c[0].innerText), a: sf(c[2].innerText), s: { n180: si(c[8]?.innerText), hi: si(c[7]?.innerText) } });
+                }
+            });
+            if (p.length) { App.state.history[id] = p; if (!App.state.loaded.includes(id)) App.state.loaded.push(id); App.UI.toast(`ID ${id} OK`); return p.length; }
+            return 0;
+        },
+        recalc() {
+            const old = App.state.players || {}; App.state.players = {}; const c = App.state.config;
+            Object.values(App.state.history).flat().forEach(p => {
+                if (!App.state.players[p.n]) {
+                    const l = old[p.n]?.layout || { s: 100, x: 0, y: 0, sx: 0, sy: 0 };
+                    App.state.players[p.n] = { name: p.n, score: 0, bonus: 0, tours: 0, s: { n180: 0, hi: 0, avg: 0, golds: 0, silvers: 0, bronzes: 0, bestRank: 999 }, layout: l };
+                }
+                const pl = App.state.players[p.n];
+                
+                // Medals & Stats
+                if(p.r === 1) pl.s.golds++;
+                if(p.r === 2) pl.s.silvers++;
+                if(p.r === 3) pl.s.bronzes++;
+                if(p.r < pl.s.bestRank) pl.s.bestRank = p.r;
+
+                // Base Points (Universal Fix)
+                let base = (c.baseRest !== undefined ? c.baseRest : 1); 
+                if (p.r === 1) base = c.base1; 
+                else if (p.r === 2) base = c.base2; 
+                else if (p.r === 3) base = c.base3; 
+                
+                // Bonuses
+                let b = c.usePart ? c.wPart : 0;
+                
+                if (p.s) {
+                    if (c.use180) b += (p.s.n180 || 0) * c.w180;
+                    if (c.useHi && (p.s.hi || 0) >= c.hiLimit) b += c.wHi;
+                    pl.s.n180 += (p.s.n180 || 0); if ((p.s.hi || 0) > pl.s.hi) pl.s.hi = p.s.hi;
+                }
+                if (c.useAvg && (p.a || 0) >= c.avgLimit) b += c.wAvg; if ((p.a || 0) > pl.s.avg) pl.s.avg = p.a;
+                
+                pl.score += base + b; 
+                pl.bonus += b; 
+                pl.tours++;
+            });
+        },
+        updateConfig(){
+            const c = App.state.config;
+            ['base1','base2','base3','baseRest'].forEach(k=>c[k]=parseFloat(document.getElementById(k).value)||0);
+            ['180','Hi','Avg','Part'].forEach(k=>{c['w'+k]=parseFloat(document.getElementById('w'+k).value)||0;c['use'+k]=document.getElementById('use'+k).checked});
+            this.recalc(); this.manualSave(); App.UI.render();
+        },
+        manualSave() { localStorage.setItem('db_v106', JSON.stringify(App.state)); App.UI.toast("Сохранено"); },
+    },
+
+    Media: {
+        selectFromAdmin(v) { App.adminSelectedPlayer = v },
+        async handleAdminUpload(input) {
+            if (!App.adminSelectedPlayer) { input.value = ''; return App.UI.toast("Выберите игрока!", "error"); }
+            this.uploadPhoto({ files: input.files }, App.adminSelectedPlayer); input.value = '';
+        },
+        async handleCardUpload(input) { this.uploadPhoto({ files: input.files }, document.getElementById('pcName').innerText); input.value = ''; },
+        drop(e) {
+            e.preventDefault(); if (!App.Admin.isEditing()) return;
+            const n = document.getElementById('pcName').innerText;
+            if (e.dataTransfer.files[0]) { this.uploadPhoto({ files: e.dataTransfer.files }, n); }
+        },
+        async uploadPhoto(source, playerName) {
+            const f = source.files[0]; if (!f || !playerName) return;
+            App.UI.toast("Загрузка...");
+            const r = new FileReader();
+            r.onload = async e => {
+                const img = new Image(); img.src = e.target.result;
+                img.onload = async () => {
+                    const c = document.createElement('canvas'); const x = c.getContext('2d');
+                    const scale = Math.min(600 / img.width, 1);
+                    c.width = img.width * scale; c.height = img.height * scale;
+                    x.drawImage(img, 0, 0, c.width, c.height);
+                    await PhotoDB.save(playerName, c.toDataURL('image/jpeg', 0.85));
+                    App.UI.toast("Фото OK!");
+                    if (document.getElementById('playerCardContainer').style.display === 'block' && document.getElementById('pcName').innerText === playerName) {
+                        App.UI.openCard(playerName);
+                    }
+                };
+            };
+            r.readAsDataURL(f);
+        },
+    },
+
+    UI: {
+        toggleSettings(){const e=document.getElementById('settingsContainer');e.style.display=e.style.display==='block'?'none':'block'},
+        toggleAvatarFrame() { document.getElementById('pcAvatar').classList.toggle('framed') },
+        closeCardView() { document.getElementById('playerCardContainer').style.display = 'none'; document.getElementById('defaultStats').style.display = 'block'; },
+        render() {
+            const d = Object.values(App.state.players).sort((a, b) => b.score - a.score);
+            const tb = document.getElementById('rankBody'); const s = document.getElementById('searchBox').value.toLowerCase();
+            const f = s ? d.filter(p => p.name.toLowerCase().includes(s)) : d;
+            tb.innerHTML = f.map((p, i) => {
+                const img = `<div class="mini-avatar">${p.name.substring(0, 2)}</div>`;
+                const basePoints = Math.round(p.score - p.bonus);
+                return `<tr onclick="App.UI.openCard('${p.name}', this)" class="clickable-row"><td>${d.indexOf(p) + 1}</td><td><div class="player-name">${img} ${p.name}</div></td><td style="text-align:center;color:#888">${p.tours}</td><td class="base-cell">${basePoints}</td><td class="bonus-cell">+${Math.round(p.bonus)}</td><td class="score-cell">${Math.round(p.score)}</td></tr>`
+            }).join('');
+            const sel = document.getElementById('adminPlayerSelect'); sel.innerHTML = '<option value="">...</option>';
+            [...d].sort((a, b) => a.name.localeCompare(b.name)).forEach(p => { const o = document.createElement('option'); o.value = p.name; o.innerText = p.name; sel.appendChild(o) });
+            this.renderChart(d.slice(0, 10));
+        },
+        async openCard(n, rowEl = null) {
+            document.getElementById('defaultStats').style.display = 'none';
+            document.getElementById('playerCardContainer').style.display = 'block';
+            
+            const p = App.state.players[n];
+            document.getElementById('pcName').setAttribute('data-orig-name', n);
+            document.getElementById('pcName').innerText = n;
+            document.getElementById('pcRankNum').innerText = "#" + (Object.values(App.state.players).sort((a, b) => b.score - a.score).findIndex(x => x.name === n) + 1);
+            document.getElementById('pcTotalScore').innerText = Math.round(p.score);
+            document.getElementById('pc180').innerText = p.s.n180; document.getElementById('pcHi').innerText = p.s.hi;
+            document.getElementById('pcAvg').innerText = p.s.avg.toFixed(1); document.getElementById('pcTours').innerText = p.tours;
+            
+            const bestRank = p.s.bestRank === 999 ? '-' : '#' + p.s.bestRank;
+            document.getElementById('pcBestRank').innerText = bestRank;
+            
+            const winRate = p.tours > 0 ? Math.round((p.s.golds / p.tours) * 100) : 0;
+            document.getElementById('pcWinRate').innerText = winRate + '%';
+
+            document.getElementById('cntGold').innerText = p.s.golds || 0;
+            document.getElementById('cntSilver').innerText = p.s.silvers || 0;
+            document.getElementById('cntBronze').innerText = p.s.bronzes || 0;
+            document.getElementById('pcMedals').style.display = (p.s.golds+p.s.silvers+p.s.bronzes > 0) ? 'flex' : 'none';
+
+            const b = await PhotoDB.get(n); const av = document.getElementById('pcAvatar');
+            av.innerHTML = b ? `<img src="${b}">` : n.substring(0, 2);
+            
+            const lay = p.layout || { s: 100, x: 0, y: 0, sx: 0, sy: 0 };
+            document.getElementById('edZoom').value = lay.s; document.getElementById('edX').value = lay.x;
+            document.getElementById('edY').value = lay.y; 
+            App.Admin.updateTransform();
+
+            const ctx = document.getElementById('radarChart'); if (App.chartInstance) App.chartInstance.destroy();
+            App.radarInstance = new Chart(ctx, { type: 'radar', data: { labels: ['PWR', 'FIN', 'EXP', 'ACC'], datasets: [{ data: [Math.min(99, p.s.avg + (p.s.n180 * 2)), Math.min(99, (p.s.hi / 170) * 100), Math.min(99, p.tours * 10), Math.min(99, winRate * 1.5 + 20)], backgroundColor: 'rgba(255,107,0,0.5)', borderColor: '#ff6b00', pointBackgroundColor: '#fff', borderWidth: 2 }] }, options: { scales: { r: { min: 0, max: 100, ticks: { display: false }, grid: { color: 'rgba(255,255,255,0.1)' }, pointLabels: { color: '#fff', font: { size: 10, weight: 'bold' } } } }, plugins: { legend: { display: false } }, maintainAspectRatio: false } });
+        },
+        downloadCard() {
+            const n = document.getElementById('captureNode'); const f = document.querySelector('.pc-footer'); f.style.display = 'none';
+            const c = document.querySelector('.admin-edit-panel'); if (c) c.style.display = 'none';
+            html2canvas(n, { backgroundColor: null, scale: 2, useCORS: true }).then(c => {
+                const l = document.createElement('a'); l.download = `Card_${document.getElementById('pcName').innerText}.png`; l.href = c.toDataURL("image/png"); l.click();
+                f.style.display = 'flex'; if (document.body.classList.contains('is-admin')) document.querySelector('.admin-edit-panel').style.display = 'flex';
+            });
+        },
+        renderChart(d) {
+            const ctx = document.getElementById('scoreChart'); if (App.chartInstance) App.chartInstance.destroy();
+            App.chartInstance = new Chart(ctx, { type: 'bar', data: { labels: d.map(p => p.name.split(' ')[0]), datasets: [{ data: d.map(p => p.score), backgroundColor: '#ff6b00', borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } } } });
+        },
+        export() { 
+            const d = new Date().toISOString().slice(0,10);
+            const ws = XLSX.utils.json_to_sheet(Object.values(App.state.players)); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Ranking"); XLSX.writeFile(wb, `DartBrig_${d}.xlsx`) 
+        },
+        toast(m, t = 'success') { const c = document.getElementById('toastContainer'); const e = document.createElement('div'); e.className = `toast ${t}`; e.innerText = m; c.appendChild(e); setTimeout(() => e.remove(), 3000) }
+    },
+
+    Admin: {
+        login() { if (prompt("Pass:") === "1234") { App.Admin.enableMode(); App.UI.toast("Режим Администратора"); } },
+        logout() { document.body.classList.remove('is-admin'); sessionStorage.removeItem('db_admin_v106'); document.getElementById('adminBadge').style.display = 'none' },
+        isEditing() { return document.body.classList.contains('is-admin'); },
+        enableMode() {
+            document.body.classList.add('is-admin'); sessionStorage.setItem('db_admin_v106', 'true');
+            document.getElementById('adminBadge').style.display = 'block';
+            document.querySelectorAll('.editable').forEach(el => el.contentEditable = "true");
+        },
+        updateTransform() {
+            const s = document.getElementById('edZoom').value / 100, x = document.getElementById('edX').value, y = document.getElementById('edY').value;
+            const img = document.querySelector('#pcAvatar img'); if (img) img.style.transform = `scale(${s}) translate(${x}px, ${y}px)`;
+        },
+        saveCardChanges() {
+            if (!confirm('Сохранить изменения?')) return;
+            const orig = document.getElementById('pcName').getAttribute('data-orig-name'), newN = document.getElementById('pcName').innerText.trim();
+            if (!orig || !App.state.players[orig]) return App.UI.toast("Ошибка!", "error");
+            let p = App.state.players[orig];
+            if (newN !== orig) {
+                if (App.state.players[newN]) return App.UI.toast("Имя занято!", "error");
+                App.state.players[newN] = JSON.parse(JSON.stringify(p)); App.state.players[newN].name = newN; delete App.state.players[orig]; p = App.state.players[newN];
+                PhotoDB.get(orig).then(img => { if (img) { PhotoDB.save(newN, img); PhotoDB.delete(orig) } });
+            }
+            p.score = parseFloat(document.getElementById('pcTotalScore').innerText) || 0;
+            p.s.n180 = parseInt(document.getElementById('pc180').innerText) || 0;
+            p.s.hi = parseInt(document.getElementById('pcHi').innerText) || 0;
+            p.s.avg = parseFloat(document.getElementById('pcAvg').innerText) || 0;
+            p.tours = parseInt(document.getElementById('pcTours').innerText) || 0;
+            p.layout = { s: document.getElementById('edZoom').value, x: document.getElementById('edX').value, y: document.getElementById('edY').value };
+            App.Logic.manualSave(); App.UI.render();
+            if (newN !== orig) App.UI.openCard(newN); else App.UI.toast("Сохранено!");
+        }
+    }
+};
+App.init();
+</script>
+</body>
+</html>

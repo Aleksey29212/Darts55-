@@ -1,0 +1,60 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if the user is an admin.
+    // An admin's UID is stored in the /roles_admin collection.
+    function isAdmin() {
+      // Check if a document with the user's UID exists in the roles_admin collection.
+      // This is a secure way to check for roles.
+      return request.auth != null && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    // Public collections are read-only for everyone, writable only by admins.
+    match /tournaments/{tournamentId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /players/{playerId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /partners/{partnerId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Configuration collections are readable by everyone, but writable only by admins.
+    match /scoring_configurations/{configId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /app_settings/{settingId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Admin roles can only be read and managed by other admins.
+    match /roles_admin/{userId} {
+       allow read, write: if isAdmin();
+    }
+
+    // Visits collection is writable by anyone to log a visit, but only readable by admins.
+    match /visits/{visitId} {
+      allow create: if request.resource.data.keys().hasOnly(['timestamp']) && 
+                   (request.resource.data.timestamp == request.time || request.resource.data.timestamp is timestamp);
+      allow read, list: if isAdmin();
+      allow update, delete: if false;
+    }
+    
+    match /sponsor_clicks/{clickId} {
+      allow create: if true;
+      allow read, list: if isAdmin();
+    }
+  }
+}

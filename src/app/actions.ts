@@ -1,0 +1,516 @@
+'use server';
+
+import { getPlayerProfiles, updatePlayerProfiles, clearAllPlayerProfiles } from '@/lib/players';
+import { addTournaments, clearAllTournamentData, deleteTournamentById, getTournaments } from '@/lib/tournaments';
+import { revalidatePath, revalidateTag } from 'next/cache';
+import type { PlayerProfile, Tournament, ScoringSettings, LeagueId, AllLeagueSettings, TournamentPlayerResult, SponsorshipSettings } from '@/lib/types';
+import * as cheerio from 'cheerio';
+import { getAllScoringSettings, updateScoringSettings, updateLeagueSettings, getScoringSettings, updateBackgroundUrl, getLeagueSettings, updateSponsorshipSettings } from '@/lib/settings';
+import { calculatePlayerPoints } from '@/lib/scoring';
+import { getDb } from '@/firebase/server';
+import { addDoc, collection, doc, getDoc, serverTimestamp, setDoc, deleteDoc } from 'firebase/firestore';
+import { headers } from 'next/headers';
+import { calculateRankingsInternal } from '@/lib/leagues';
+
+const stageToRankMap: Record<string, number> = {
+    'победитель': 1,
+    'победа': 1,
+    '1 место': 1,
+    'финал': 2,
+    '2 место': 2,
+    '1/2': 3,
+    'полуфинал': 3,
+    '3-4': 3,
+    '1/4': 5,
+    'четвертьфинал': 5,
+    '5-8': 5,
+    '1/8': 9,
+    '9-16': 9,
+    '1/16': 17,
+    'резерв': 17,
+};
+
+const PRO_NICKNAMES = [
+    "Снайпер", "Молния", "Танк", "Ястреб", "Вихрь", "Стрела", "Профи", "Легенда", 
+    "Аллигатор", "Гром", "Авиатор", "Тигр", "Мастер", "Крепость", "Феникс", "Скорпион",
+    "Voltage", "The Power", "Warrior", "Bullseye", "The Machine", "Titan", "Ace"
+];
+
+function getRandomNickname() {
+    return PRO_NICKNAMES[Math.floor(Math.random() * PRO_NICKNAMES.length)];
+}
+
+export async function importTournament(prevState: unknown, formData: FormData) {
+  const tournamentIdsRaw = formData.get('tournamentId');
+  const league = formData.get('league') as LeagueId;
+
+  if (!tournamentIdsRaw || typeof tournamentIdsRaw !== 'string') {
+    return { success: false, message: 'Неверный ID турнира.' };
+  }
+  if (!league) {
+    return { success: false, message: 'Лига не выбрана.' };
+  }
+
+  const tournamentIds = tournamentIdsRaw.match(/\d+/g) || [];
+  if (tournamentIds.length === 0) return { success: false, message: 'Не найдены корректные ID.' };
+  
+  const scoringSettings = await getScoringSettings(league);
+  const tournamentsToCreate: Omit<Tournament, 'id'>[] = [];
+  let playerProfiles = await getPlayerProfiles();
+  const newPlayerProfiles: PlayerProfile[] = [];
+  const errors: string[] = [];
+
+  const parsedAtDate = new Date().toISOString();
+
+  for (const tournamentId of tournamentIds) {
+    let html = '';
+    const urlsToTry = [
+      `https://dartsbase.ru/tournaments/${tournamentId}/stats`,
+      `https://dartsbase.ru/tournaments/${tournamentId}`
+    ];
+    
+    for (const url of urlsToTry) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        try {
+            const response = await fetch(url, {
+              headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+              cache: 'no-store',
+              signal: controller.signal
+            });
+            
+            if (response.ok) {
+                const tempHtml = await response.text();
+                const $temp = cheerio.load(tempHtml);
+                if ($temp('table').length > 0) {
+                    html = tempHtml;
+                    clearTimeout(timeoutId);
+                    break;
+                }
+            }
+            clearTimeout(timeoutId);
+        } catch (fetchError: unknown) {
+            clearTimeout(timeoutId);
+            console.error(`Error fetching ${url}`);
+        }
+    }
+
+    if (!html) {
+        errors.push(`Турнир #${tournamentId} не доступен.`);
+        continue;
+    }
+    
+    try {
+      const $ = cheerio.load(html);
+      const h1Text = $('h1').text().trim();
+      let tournamentName = $('h1').clone().find('span').remove().end().text().trim() || `Турнир #${tournamentId}`;
+      
+      let tournamentDate: Date | null = null;
+      const datePattern = /(\d{1,2})[./-](\d{1,2})[./-](\d{4})/;
+      
+      const dateInTitle = h1Text.match(datePattern);
+      if (dateInTitle) {
+          const day = parseInt(dateInTitle[1], 10);
+          const month = parseInt(dateInTitle[2], 10);
+          const year = parseInt(dateInTitle[3], 10);
+          tournamentDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+          tournamentName = tournamentName.replace(dateInTitle[0], '').replace(/\s+/g, ' ').trim();
+          tournamentName = tournamentName.replace(/[.,\s/:-]+$/, '').trim();
+      }
+
+      const eventDateFinal = tournamentDate || new Date();
+      
+      let table = $('table').filter((i, el) => {
+          const h = $(el).find('thead th').text().toLowerCase();
+          return h.includes('стадия') || h.includes('место') || h.includes('игрок') || h.includes('avg');
+      }).first();
+      
+      if (table.length === 0) table = $('table').first();
+
+      const headerMap: Record<string, number> = {};
+      table.find('thead tr th').each((i, el) => {
+        const txt = $(el).text().trim().toLowerCase();
+        if (txt === 'avg' || txt === 'ср' || txt === 'ср.' || txt === 'average') headerMap['avg'] = i;
+        else if (txt.includes('hi') || txt.includes('закрытие') || txt.includes('out')) headerMap['hiout'] = i;
+        else if (txt.includes('best') || txt.includes('лучший') || txt.includes('leg')) headerMap['bestleg'] = i;
+        else if (txt.includes('180') || txt.includes('max')) headerMap['180'] = i;
+        else if (txt.includes('место') || txt === '#' || txt === 'rank' || txt.includes('стадия')) headerMap['rank'] = i;
+        else if (txt.includes('игрок') || txt.includes('player') || txt === 'имя') headerMap['name'] = i;
+      });
+      
+      const rankIdx = headerMap['rank'] ?? 0;
+      const nameIdx = headerMap['name'] ?? (rankIdx === 0 ? 1 : 0);
+      const avgIdx = headerMap['avg'];
+
+      const results: TournamentPlayerResult[] = [];
+      table.find('tbody tr').each((i, row) => {
+        const cols = $(row).find('td');
+        if (cols.length < 2) return;
+
+        const getTxt = (idx: number | undefined) => idx !== undefined ? $(cols[idx]).text().trim() : '';
+        const cleanInt = (v: string) => parseInt(v.replace(/[^\d]/g, ''), 10) || 0;
+        const cleanFloat = (v: string) => parseFloat(v.replace(',', '.').replace(/[^\d.]/g, '')) || 0;
+
+        const rankTxt = getTxt(rankIdx).toLowerCase();
+        let rank = 0;
+        for (const [k, v] of Object.entries(stageToRankMap)) {
+            if (rankTxt.includes(k)) { rank = v; break; }
+        }
+        if (rank === 0) rank = parseInt(rankTxt, 10) || (i + 1);
+        
+        const nameCell = cols.eq(nameIdx);
+        const name = nameCell.find('a').text().trim() || nameCell.text().trim();
+        if (!name) return;
+
+        const pId = nameCell.find('a').attr('href')?.split('/').pop() || name.replace(/\s+/g, '-').toLowerCase();
+        
+        if (!playerProfiles.some(p => p.id === pId) && !newPlayerProfiles.some(p => p.id === pId)) {
+            newPlayerProfiles.push({
+                id: pId, name, nickname: getRandomNickname(),
+                avatarUrl: `https://picsum.photos/seed/${encodeURIComponent(name)}/400/400`,
+                bio: 'Авто-профиль.', imageHint: 'person portrait',
+                backgroundUrl: 'https://images.unsplash.com/photo-1544098485-2a216e2133c1',
+                backgroundImageHint: 'darts background'
+            });
+        }
+
+        const playerResult: TournamentPlayerResult = {
+          id: pId, name, nickname: 'PRO', rank,
+          points: 0, basePoints: 0, bonusPoints: 0,
+          pointsFor180s: 0, is180BonusApplied: false,
+          pointsForHiOut: 0, isHiOutBonusApplied: false,
+          pointsForAvg: 0, isAvgBonusApplied: false,
+          pointsForBestLeg: 0, isBestLegBonusApplied: false,
+          pointsFor9Darter: 0, is9DarterBonusApplied: false,
+          avatarUrl: `https://picsum.photos/seed/${encodeURIComponent(name)}/400/400`,
+          imageHint: 'person portrait',
+          avg: cleanFloat(getTxt(avgIdx)),
+          n180s: cleanInt(getTxt(headerMap['180'])),
+          hiOut: cleanInt(getTxt(headerMap['hiout'])),
+          bestLeg: cleanInt(getTxt(headerMap['bestleg'])),
+          nineDarters: 0,
+        };
+
+        calculatePlayerPoints(playerResult, scoringSettings, league);
+        results.push(playerResult);
+      });
+
+      tournamentsToCreate.push({
+        id: tournamentId, 
+        name: tournamentName,
+        date: eventDateFinal.toISOString(), 
+        eventDate: eventDateFinal.toISOString(), 
+        parsedAt: parsedAtDate,
+        league, 
+        players: results,
+      } as any);
+
+    } catch (e: unknown) {
+      errors.push(`${tournamentId}: Error parsing data`);
+    }
+  }
+
+  if (newPlayerProfiles.length > 0) {
+      const db = getDb();
+      if (!db) {
+        return { success: false, message: "DB Error" };
+      }
+      await updatePlayerProfiles(newPlayerProfiles);
+  }
+  
+  if (tournamentsToCreate.length > 0) {
+      const db = getDb();
+      if (!db) {
+        return { success: false, message: "DB Error" };
+      }
+      await addTournaments(tournamentsToCreate);
+  }
+
+  revalidateTag('rankings');
+  revalidatePath('/', 'layout');
+  return { success: true, message: `Импортировано: ${tournamentsToCreate.length}. Ошибок: ${errors.length}` };
+}
+
+export async function updatePlayer(player: PlayerProfile) {
+  try {
+    const db = getDb();
+    if (!db) {
+        return { success: false, message: 'Ошибка базы данных: нет подключения.' };
+    }
+    await updatePlayerProfiles([player]);
+    revalidateTag('rankings');
+    revalidatePath('/', 'layout');
+    return { success: true, message: 'Данные игрока обновлены.' };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Ошибка базы данных';
+    return { success: false, message };
+  }
+}
+
+export async function updatePlayerAvatar(playerId: string, avatarUrl: string | null) {
+    const db = getDb();
+    if (!db) {
+        return { success: false, message: "Ошибка: База данных недоступна." };
+    }
+    try {
+        const playerRef = doc(db, 'players', playerId);
+        
+        const updateData: any = { updatedAt: serverTimestamp() };
+        if (avatarUrl) {
+            updateData.avatarUrl = avatarUrl;
+        } else {
+            const playerSnap = await getDoc(playerRef);
+            if (playerSnap.exists()) {
+                const name = playerSnap.data().name;
+                updateData.avatarUrl = `https://picsum.photos/seed/${encodeURIComponent(name)}/400/400`;
+            }
+        }
+
+        await setDoc(playerRef, updateData, { merge: true });
+        revalidatePath('/', 'layout');
+        return { success: true, message: 'Аватар обновлен.' };
+    } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'Неизвестная ошибка при обновлении аватара';
+        return { success: false, message };
+    }
+}
+
+export async function deletePlayerAction(playerId: string) {
+    const db = getDb();
+    if (!db) {
+        return { success: false, message: 'Ошибка: База данных недоступна.' };
+    }
+    try {
+        await deleteDoc(doc(db, 'players', playerId));
+        revalidateTag('rankings');
+        revalidatePath('/', 'layout');
+        return { success: true, message: 'Профиль игрока удален.' };
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Неизвестная ошибка при удалении игрока';
+        return { success: false, message };
+    }
+}
+
+export async function clearAllPlayerData() {
+  try {
+    const db = getDb();
+    if (!db) {
+      return { success: false, message: 'Ошибка: База данных недоступна.' };
+    }
+    await clearAllPlayerProfiles();
+    await clearAllTournamentData();
+    revalidateTag('rankings');
+    revalidatePath('/', 'layout');
+    return { success: true, message: 'Все данные очищены.' };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Ошибка очистки данных';
+    return { success: false, message };
+  }
+}
+
+export async function clearTournamentsAction() {
+  try {
+    const db = getDb();
+    if (!db) {
+      return { success: false, message: 'Ошибка: База данных недоступна.' };
+    }
+    await clearAllTournamentData();
+    revalidateTag('rankings');
+    revalidatePath('/', 'layout');
+    return { success: true, message: 'Все турниры удалены.' };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Ошибка удаления турниров';
+    return { success: false, message };
+  }
+}
+
+export async function saveScoringSettings(leagueId: LeagueId, data: ScoringSettings) {
+  try {
+    const db = getDb();
+    if (!db) {
+        return { success: false, message: 'Ошибка базы данных: нет подключения.' };
+    }
+    await updateScoringSettings(leagueId, data);
+    revalidateTag('rankings');
+    revalidatePath('/', 'layout');
+    return { success: true, message: 'Настройки сохранены.' };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Ошибка сохранения настроек';
+    return { success: false, message };
+  }
+}
+
+export async function saveLeagueSettings(data: AllLeagueSettings) {
+  try {
+    const db = getDb();
+    if (!db) {
+        return { success: false, message: 'Ошибка базы данных: нет подключения.' };
+    }
+    await updateLeagueSettings(data);
+    revalidateTag('rankings');
+    revalidatePath('/', 'layout');
+    return { success: true, message: 'Лиги обновлены.' };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Ошибка обновления лиг';
+    return { success: false, message };
+  }
+}
+
+export async function deleteTournamentAction(tournamentId: string) {
+    try {
+        const db = getDb();
+        if (!db) {
+          return { success: false, message: 'Ошибка: База данных недоступна.' };
+        }
+        await deleteTournamentById(tournamentId);
+        revalidateTag('rankings');
+        revalidatePath('/', 'layout');
+        return { success: true, message: 'Турнир удален.' };
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Ошибка удаления турнира';
+        return { success: false, message };
+    }
+}
+
+export async function saveBackgroundAction(prevState: unknown, formData: FormData) {
+  const intent = formData.get('intent');
+  try {
+    const db = getDb();
+    if (!db) {
+        return { success: false, message: 'Ошибка базы данных: нет подключения.' };
+    }
+    if (intent === 'reset') {
+        await updateBackgroundUrl('');
+    } else {
+        const url = formData.get('url') as string;
+        await updateBackgroundUrl(url);
+    }
+    revalidatePath('/', 'layout');
+    return { success: true, message: intent === 'reset' ? 'Фон сброшен.' : 'Фон обновлен.' };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Ошибка сохранения фона';
+    return { success: false, message };
+  }
+}
+
+export async function saveSponsorshipAction(data: SponsorshipSettings) {
+    try {
+        const db = getDb();
+        if (!db) {
+            return { success: false, message: 'Ошибка базы данных: нет подключения.' };
+        }
+        await updateSponsorshipSettings(data);
+        revalidatePath('/', 'layout');
+        return { success: true, message: 'Настройки спонсорства обновлены.' };
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Ошибка сохранения спонсорства';
+        return { success: false, message };
+    }
+}
+
+export async function logVisitAction() {
+    const db = getDb();
+    if (!db) {
+        // Silently fail if DB is not available
+        return;
+    }
+  try {
+    const h = await headers();
+    const ua = h.get('user-agent') || '';
+    const isBot = /bot|spider|crawler|lighthouse|inspect/i.test(ua);
+    if (isBot) return;
+
+    await addDoc(collection(db, 'visits'), {
+      timestamp: serverTimestamp(),
+    });
+  } catch (e) {
+    console.error('Failed to log visit:', e);
+  }
+}
+
+export async function logSponsorClickAction(playerId: string, playerName: string, sponsorName: string) {
+    const db = getDb();
+    if (!db) {
+        // Silently fail
+        return { success: false };
+    }
+    try {
+        await addDoc(collection(db, 'sponsor_clicks'), {
+            playerId,
+            playerName,
+            sponsorName,
+            timestamp: serverTimestamp()
+        });
+        return { success: true };
+    } catch (e) {
+        console.error('Failed to log click:', e);
+        return { success: false };
+    }
+}
+
+export async function exportAllRankingsAction() {
+    const db = getDb();
+    if (!db) {
+        return { success: false, message: 'База данных не доступна.' };
+    }
+    try {
+        const [ls, playerProfiles, allTournaments, allScoringSettings] = await Promise.all([
+            getLeagueSettings(),
+            getPlayerProfiles(),
+            getTournaments(),
+            getAllScoringSettings()
+        ]);
+
+        const leagues = Array.from(new Set(['general', ...(Object.keys(ls) as LeagueId[]).filter(k => (ls as any)[k].enabled)])) as LeagueId[];
+        let csv = 'League,Rank,Name,Nickname,Points,Matches,AVG,180s,Hi-Out\n';
+        
+        for (const lid of leagues) {
+            const players = calculateRankingsInternal(lid, playerProfiles, allTournaments, allScoringSettings);
+            players.filter(p => p.matchesPlayed > 0).forEach(p => {
+                csv += `${lid},${p.rank},"${p.name}","${p.nickname}",${p.points},${p.matchesPlayed},${p.avg.toFixed(2)},${p.n180s},${p.hiOut}\n`;
+            });
+        }
+        return { success: true, csv };
+    } catch(e: unknown) { 
+        const message = e instanceof Error ? e.message : 'Неизвестная ошибка при экспорте';
+        return { success: false, message }; 
+    }
+}
+
+export async function triggerDeploymentAction() {
+    const token = process.env.GITHUB_TOKEN;
+    const owner = process.env.GITHUB_OWNER;
+    const repo = process.env.GITHUB_REPO;
+    const workflowId = process.env.GITHUB_WORKFLOW_ID || 'deploy.yml';
+
+    if (!token || !owner || !repo) {
+        return { success: false, message: 'Настройки GitHub не настроены.' };
+    }
+
+    try {
+        const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowId}/dispatches`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28',
+            },
+            body: JSON.stringify({
+                ref: 'main', // или ветка по умолчанию
+            }),
+        });
+
+        if (response.ok) {
+            return { success: true, message: 'Обновление запущено в GitHub Actions.' };
+        } else {
+            const err = await response.json();
+            return { success: false, message: `Ошибка GitHub: ${err.message || response.statusText}` };
+        }
+    } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'Ошибка сети при обращении к GitHub.';
+        return { success: false, message };
+    }
+}
+
+    
