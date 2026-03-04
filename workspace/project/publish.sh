@@ -18,37 +18,53 @@ REPO_NAME="Darts55-"
 REPO_URL_WITH_TOKEN="https://oauth2:${GITHUB_TOKEN}@github.com/${REPO_OWNER}/${REPO_NAME}.git"
 PUBLIC_REPO_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}"
 
-echo "🚀 Начинаю процесс БЕЗОПАСНОЙ отправки на GitHub..."
-echo "🛡️ Выполняю полную очистку локальной истории Git для удаления секретов..."
+echo "🚀 Начинаю процесс отправки на GitHub..."
 
-# --- ПОЛНЫЙ СБРОС ЛОКАЛЬНОГО РЕПОЗИТОРИЯ ---
-# Это необходимо, чтобы удалить все следы коммитов с секретами
-rm -rf .git
+# --- Инициализация репозитория, если его нет ---
+if [ ! -d ".git" ]; then
+    echo "🔍 Локальный репозиторий не найден. Инициализация..."
+    git init -b main
+    git remote add origin "$REPO_URL_WITH_TOKEN"
+fi
 
-# --- Повторная инициализация ---
-git init -b main
+# --- Конфигурация пользователя (на случай, если не задано глобально) ---
 git config --global user.email "action@github.com"
 git config --global user.name "DartBrig Pro Sync"
 
-# --- Первый коммит с .gitignore ---
-# Это гарантирует, что .env НИКОГДА не попадет в историю
-git add .gitignore
-git commit -m "Initial commit: Add .gitignore to exclude secrets"
-
-# --- Второй коммит со всеми остальными файлами ---
+# --- Добавление всех файлов в отслеживание ---
+echo "📝 Индексирую все изменения..."
 git add .
-git commit -m "Production Release: Add all project files"
 
-# --- Настройка удаленного репозитория и принудительная отправка ---
-git remote add origin "$REPO_URL_WITH_TOKEN"
+# --- Проверка наличия изменений для коммита ---
+# git status --porcelain - выводит изменения в коротком формате. Если вывод пустой - изменений нет.
+if [ -z "$(git status --porcelain)" ]; then
+    echo "✅ Нет новых изменений для отправки. Репозиторий уже синхронизирован."
+    # Добавим принудительный пуш на случай, если история разошлась
+    echo "🔄 Пробую принудительно синхронизировать историю..."
+    git push --force origin main
+    if [ $? -eq 0 ]; then
+      echo "✨ История успешно синхронизирована с GitHub: ${PUBLIC_REPO_URL}"
+    else
+      echo "❌ ОШИБКА: Не удалось принудительно отправить файлы."
+    fi
+    exit 0
+fi
 
-echo "📤 Отправка чистой истории в репозиторий... (Это может занять некоторое время)"
+# --- Создание коммита ---
+echo "📦 Создаю коммит..."
+# Коммит с датой, чтобы избежать конфликтов с одинаковыми сообщениями
+COMMIT_MESSAGE="Production Sync: $(date)"
+git commit -m "$COMMIT_MESSAGE"
+
+# --- Отправка на GitHub ---
+echo "📤 Отправляю изменения в репозиторий... (Это может занять некоторое время)"
+# --force нужен, чтобы перезаписать историю на GitHub и избежать конфликтов
 git push --force origin main
 
 # --- Проверка результата ---
 if [ $? -eq 0 ]; then
     echo ""
-    echo "✨ УСПЕХ! Репозиторий очищен и успешно синхронизирован с GitHub: ${PUBLIC_REPO_URL}"
+    echo "✨ УСПЕХ! Репозиторий успешно синхронизирован с GitHub: ${PUBLIC_REPO_URL}"
 else
     echo ""
     echo "❌ ОШИБКА: Не удалось отправить файлы. См. сообщение от Git выше."
