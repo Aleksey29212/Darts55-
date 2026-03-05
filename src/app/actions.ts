@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getPlayerProfiles, updatePlayerProfiles, clearAllPlayerProfiles } from '@/lib/players';
@@ -169,7 +170,9 @@ export async function importTournament(prevState: unknown, formData: FormData) {
           const name = nameCell.find('a').text().trim() || nameCell.text().trim();
           if (!name) return;
 
-          const pId = nameCell.find('a').attr('href')?.split('/').pop() || name.replace(/\s+/g, '-').toLowerCase();
+          let pId = nameCell.find('a').attr('href')?.split('/').pop() || name.replace(/\s+/g, '-').toLowerCase();
+          // Sanitize ID to be Firestore-safe. Replace invalid characters.
+          pId = pId.replace(/[.\/\[\]\*]/g, '_');
           
           if (!playerProfiles.some(p => p.id === pId) && !newPlayerProfiles.some(p => p.id === pId)) {
               newPlayerProfiles.push({
@@ -229,9 +232,22 @@ export async function importTournament(prevState: unknown, formData: FormData) {
     revalidatePath('/', 'layout');
     return { success: true, message: `Импортировано: ${tournamentsToCreate.length}. Ошибок: ${errors.length}` };
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Произошла неизвестная ошибка во время импорта.';
-    console.error("Import tournament failed:", error);
-    return { success: false, message };
+    console.error("Import tournament failed:", error); // Log the full error for server-side debugging
+
+    let message = 'Произошла неизвестная ошибка. ';
+    if (error instanceof Error) {
+        message = `Сообщение об ошибке: ${error.message}`;
+    } else if (typeof error === 'string') {
+        message = `Получена ошибка в виде строки: ${error}`;
+    } else {
+        try {
+            message = `Получен не-объект ошибки: ${JSON.stringify(error)}`;
+        } catch {
+            message = 'Не удалось получить детальную информацию, т.к. объект ошибки не сериализуется.';
+        }
+    }
+    
+    return { success: false, message: `Критическая ошибка во время импорта. ${message}` };
   }
 }
 
