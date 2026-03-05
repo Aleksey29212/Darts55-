@@ -45,6 +45,11 @@ export async function importTournament(prevState: unknown, formData: FormData) {
   const tournamentIdsRaw = formData.get('tournamentId');
   const league = formData.get('league') as LeagueId;
 
+  const db = getDb();
+  if (!db) {
+      return { success: false, message: 'Критическая ошибка: Не удалось подключиться к базе данных. Проверьте, что переменные окружения Firebase (например, NEXT_PUBLIC_FIREBASE_PROJECT_ID) заданы в панели управления вашего хостинга.' };
+  }
+
   if (!tournamentIdsRaw || typeof tournamentIdsRaw !== 'string') {
     return { success: false, message: 'Неверный ID турнира.' };
   }
@@ -52,11 +57,6 @@ export async function importTournament(prevState: unknown, formData: FormData) {
     return { success: false, message: 'Лига не выбрана.' };
   }
   
-  const db = getDb();
-  if (!db) {
-      return { success: false, message: 'Критическая ошибка: Не удалось подключиться к базе данных. Проверьте, что переменные окружения Firebase (например, NEXT_PUBLIC_FIREBASE_PROJECT_ID) заданы на вашем сервере.' };
-  }
-
   try {
     const tournamentIds = tournamentIdsRaw.match(/\d+/g) || [];
     if (tournamentIds.length === 0) return { success: false, message: 'Не найдены корректные ID.' };
@@ -232,7 +232,7 @@ export async function importTournament(prevState: unknown, formData: FormData) {
     revalidatePath('/', 'layout');
     return { success: true, message: `Импортировано: ${tournamentsToCreate.length}. Ошибок: ${errors.length}` };
   } catch (error: unknown) {
-    console.error("Import tournament failed:", error); // Log the full error for server-side debugging
+    console.error("Import tournament failed:", error);
 
     let message = 'Произошла неизвестная ошибка.';
     if (error instanceof Error) {
@@ -256,11 +256,11 @@ export async function importTournament(prevState: unknown, formData: FormData) {
 }
 
 export async function updatePlayer(player: PlayerProfile) {
+  const db = getDb();
+  if (!db) {
+      return { success: false, message: 'Ошибка базы данных: нет подключения.' };
+  }
   try {
-    const db = getDb();
-    if (!db) {
-        throw new Error('Ошибка базы данных: нет подключения.');
-    }
     await updatePlayerProfiles(db, [player]);
     revalidateTag('rankings');
     revalidatePath('/', 'layout');
@@ -274,7 +274,7 @@ export async function updatePlayer(player: PlayerProfile) {
 export async function updatePlayerAvatar(playerId: string, avatarUrl: string | null) {
     const db = getDb();
     if (!db) {
-        throw new Error("Ошибка: База данных недоступна.");
+        return { success: false, message: "Ошибка: База данных недоступна." };
     }
     try {
         const playerRef = doc(db, 'players', playerId);
@@ -302,7 +302,7 @@ export async function updatePlayerAvatar(playerId: string, avatarUrl: string | n
 export async function deletePlayerAction(playerId: string) {
     const db = getDb();
     if (!db) {
-        throw new Error('Ошибка: База данных недоступна.');
+        return { success: false, message: 'Ошибка: База данных недоступна.' };
     }
     try {
         await deleteDoc(doc(db, 'players', playerId));
@@ -316,11 +316,11 @@ export async function deletePlayerAction(playerId: string) {
 }
 
 export async function clearAllPlayerData() {
+  const db = getDb();
+  if (!db) {
+    return { success: false, message: 'Ошибка: База данных недоступна.' };
+  }
   try {
-    const db = getDb();
-    if (!db) {
-      throw new Error('Ошибка: База данных недоступна.');
-    }
     await clearAllPlayerProfiles(db);
     await clearAllTournamentData();
     revalidateTag('rankings');
@@ -333,11 +333,11 @@ export async function clearAllPlayerData() {
 }
 
 export async function clearTournamentsAction() {
+  const db = getDb();
+  if (!db) {
+    return { success: false, message: 'Ошибка: База данных недоступна.' };
+  }
   try {
-    const db = getDb();
-    if (!db) {
-      throw new Error('Ошибка: База данных недоступна.');
-    }
     await clearAllTournamentData();
     revalidateTag('rankings');
     revalidatePath('/', 'layout');
@@ -349,11 +349,11 @@ export async function clearTournamentsAction() {
 }
 
 export async function saveScoringSettings(leagueId: LeagueId, data: ScoringSettings) {
+  const db = getDb();
+  if (!db) {
+      return { success: false, message: 'Ошибка базы данных: нет подключения.' };
+  }
   try {
-    const db = getDb();
-    if (!db) {
-        throw new Error('Ошибка базы данных: нет подключения.');
-    }
     await updateScoringSettings(leagueId, data);
     revalidateTag('rankings');
     revalidatePath('/', 'layout');
@@ -365,11 +365,11 @@ export async function saveScoringSettings(leagueId: LeagueId, data: ScoringSetti
 }
 
 export async function saveLeagueSettings(data: AllLeagueSettings) {
+  const db = getDb();
+  if (!db) {
+      return { success: false, message: 'Ошибка базы данных: нет подключения.' };
+  }
   try {
-    const db = getDb();
-    if (!db) {
-        throw new Error('Ошибка базы данных: нет подключения.');
-    }
     await updateLeagueSettings(data);
     revalidateTag('rankings');
     revalidatePath('/', 'layout');
@@ -381,11 +381,11 @@ export async function saveLeagueSettings(data: AllLeagueSettings) {
 }
 
 export async function deleteTournamentAction(tournamentId: string) {
+    const db = getDb();
+    if (!db) {
+      return { success: false, message: 'Ошибка: База данных недоступна.' };
+    }
     try {
-        const db = getDb();
-        if (!db) {
-          throw new Error('Ошибка: База данных недоступна.');
-        }
         await deleteTournamentById(tournamentId);
         revalidateTag('rankings');
         revalidatePath('/', 'layout');
@@ -398,11 +398,11 @@ export async function deleteTournamentAction(tournamentId: string) {
 
 export async function saveBackgroundAction(prevState: unknown, formData: FormData) {
   const intent = formData.get('intent');
+  const db = getDb();
+  if (!db) {
+      return { success: false, message: 'Ошибка базы данных: нет подключения.' };
+  }
   try {
-    const db = getDb();
-    if (!db) {
-        throw new Error('Ошибка базы данных: нет подключения.');
-    }
     if (intent === 'reset') {
         await updateBackgroundUrl('');
     } else {
@@ -418,11 +418,11 @@ export async function saveBackgroundAction(prevState: unknown, formData: FormDat
 }
 
 export async function saveSponsorshipAction(data: SponsorshipSettings) {
+    const db = getDb();
+    if (!db) {
+        return { success: false, message: 'Ошибка базы данных: нет подключения.' };
+    }
     try {
-        const db = getDb();
-        if (!db) {
-            throw new Error('Ошибка базы данных: нет подключения.');
-        }
         await updateSponsorshipSettings(data);
         revalidatePath('/', 'layout');
         return { success: true, message: 'Настройки спонсорства обновлены.' };
@@ -535,5 +535,3 @@ export async function triggerDeploymentAction() {
         return { success: false, message };
     }
 }
-
-    
