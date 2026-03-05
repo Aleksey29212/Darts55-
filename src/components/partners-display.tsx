@@ -173,7 +173,7 @@ function RecruitmentCard({ variant }: { variant: 'default' | 'compact' }) {
 }
 
 
-export function PartnersDisplay({ partners, tournaments, variant = 'default' }: { partners: Partner[], tournaments: (Tournament | undefined)[], variant?: 'default' | 'compact' }) {
+export function PartnersDisplay({ partners, variant = 'default' }: { partners: Partner[], variant?: 'default' | 'compact' }) {
     const [isClient, setIsClient] = useState(false);
     const [api, setApi] = useState<CarouselApi>();
     const [activeIndex, setActiveIndex] = useState(0);
@@ -193,9 +193,7 @@ export function PartnersDisplay({ partners, tournaments, variant = 'default' }: 
         };
     }, [api]);
     
-    const showComponent = partners && partners.length > 0 && tournaments && tournaments.length > 0;
-
-    if (!showComponent) {
+    if (!partners) {
         return null;
     }
     

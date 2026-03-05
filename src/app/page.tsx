@@ -47,7 +47,7 @@ export default async function Home({ searchParams }: { searchParams: { league?: 
       <div className="w-full space-y-12 md:space-y-24">
         <DartsMarquee />
         <div className="container">
-          <PartnersDisplay partners={partners} tournaments={tournaments} variant="default" />
+          <PartnersDisplay partners={partners} variant="default" />
         </div>
       </div>
     </main>
