@@ -1,7 +1,7 @@
 'use client';
 
-import { useActionState, useEffect } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useEffect } from 'react';
+import { useFormStatus, useFormState } from 'react-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +25,7 @@ function SubmitButton() {
 
 export function ImportForm({ leagues }: { leagues: League[] }) {
   const { toast } = useToast();
-  const [state, formAction] = useActionState(importTournament, null);
+  const [state, formAction] = useFormState(importTournament, null);
 
   useEffect(() => {
     if (state?.message) {

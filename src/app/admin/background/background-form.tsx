@@ -1,8 +1,7 @@
-
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useFormStatus, useFormState } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -36,7 +35,7 @@ export function BackgroundForm({ currentUrl }: { currentUrl: string }) {
   const bgDocRef = useMemoFirebase(() => db ? doc(db, 'app_settings', 'background') : null, [db]);
   const { data: bgData } = useDoc<any>(bgDocRef);
   
-  const [state, formAction] = useActionState(saveBackgroundAction, null);
+  const [state, formAction] = useFormState(saveBackgroundAction, null);
   const [url, setUrl] = useState(currentUrl);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
