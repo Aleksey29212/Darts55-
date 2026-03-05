@@ -8,6 +8,7 @@ import { getPartners } from '@/lib/partners';
 import { getTournaments } from '@/lib/tournaments';
 import { PlayerSelector } from '@/components/player-selector';
 import { unstable_noStore as noStore } from 'next/cache';
+import { DartsMarquee } from '@/components/darts-marquee';
 
 export default async function Home({ searchParams }: { searchParams: { league?: LeagueId }}) {
   noStore();
@@ -41,7 +42,13 @@ export default async function Home({ searchParams }: { searchParams: { league?: 
           defaultTab={defaultTab}
           allScoringSettings={allScoringSettings}
         />
-        <PartnersDisplay partners={partners} tournaments={tournaments} variant="default" />
+      </div>
+      
+      <div className="w-full space-y-12 md:space-y-24">
+        <DartsMarquee />
+        <div className="container">
+          <PartnersDisplay partners={partners} tournaments={tournaments} variant="default" />
+        </div>
       </div>
     </main>
   );
