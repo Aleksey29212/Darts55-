@@ -1,4 +1,5 @@
 
+
 import { collection, doc, getDocs, deleteDoc, writeBatch, Timestamp, getDoc } from 'firebase/firestore';
 import { getDb } from '@/firebase/server';
 import type { Tournament, TournamentPlayerResult } from './types';
@@ -37,7 +38,9 @@ function sanitizePlayer(p: any): TournamentPlayerResult {
 }
 
 // Helper to safely convert various date formats to a JS Date object
-function valueToDate(value: any): Date {
+function valueToDate(value: any): Date | null {
+  if (!value) return null;
+
   if (value instanceof Timestamp) {
     return value.toDate();
   }
@@ -55,7 +58,7 @@ function valueToDate(value: any): Date {
     }
   }
   // Fallback for invalid or unexpected types
-  return new Date();
+  return null;
 }
 
 export async function getTournaments(): Promise<Tournament[]> {
@@ -72,14 +75,15 @@ export async function getTournaments(): Promise<Tournament[]> {
       const data = doc.data();
       const eventDate = valueToDate(data.eventDate || data.date);
       const parsedAt = valueToDate(data.parsedAt);
+      const fallbackDate = new Date(0).toISOString();
 
       return { 
           id: doc.id, 
           name: String(data.name || ''),
           league: String(data.league || 'general') as any,
-          date: eventDate.toISOString(),
-          eventDate: eventDate.toISOString(),
-          parsedAt: parsedAt.toISOString(),
+          date: eventDate ? eventDate.toISOString() : fallbackDate,
+          eventDate: eventDate ? eventDate.toISOString() : fallbackDate,
+          parsedAt: parsedAt ? parsedAt.toISOString() : fallbackDate,
           players: Array.isArray(data.players) ? data.players.map((p: any) => sanitizePlayer(p)) : [],
       } as Tournament;
     });
@@ -110,9 +114,9 @@ export async function addTournaments(newTournaments: Omit<Tournament, 'id'>[]): 
 
             const dataToSet = { 
                 ...newT, 
-                eventDate: Timestamp.fromDate(valueToDate(eventDateValue)),
-                parsedAt: Timestamp.fromDate(valueToDate(parsedAtValue)),
-                date: Timestamp.fromDate(valueToDate(eventDateValue))
+                eventDate: Timestamp.fromDate(valueToDate(eventDateValue) || new Date()),
+                parsedAt: Timestamp.fromDate(valueToDate(parsedAtValue) || new Date()),
+                date: Timestamp.fromDate(valueToDate(eventDateValue) || new Date())
             };
             
             delete (dataToSet as any).id;
@@ -142,14 +146,15 @@ export async function getTournamentById(id: string): Promise<Tournament | undefi
             const data = docSnap.data();
             const eventDate = valueToDate(data.eventDate || data.date);
             const parsedAt = valueToDate(data.parsedAt);
+            const fallbackDate = new Date(0).toISOString();
 
             return { 
                 id: docSnap.id, 
                 name: String(data.name || ''),
                 league: String(data.league || 'general') as any,
-                date: eventDate.toISOString(),
-                eventDate: eventDate.toISOString(),
-                parsedAt: parsedAt.toISOString(),
+                date: eventDate ? eventDate.toISOString() : fallbackDate,
+                eventDate: eventDate ? eventDate.toISOString() : fallbackDate,
+                parsedAt: parsedAt ? parsedAt.toISOString() : fallbackDate,
                 players: Array.isArray(data.players) ? data.players.map((p: any) => sanitizePlayer(p)) : [],
             } as Tournament;
         }
