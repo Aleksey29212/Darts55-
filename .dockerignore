@@ -1,8 +1,10 @@
 node_modules
 .git
 .next/cache
+Dockerfile
+.dockerignore
 .env
 .env.local
-.env.production
+npm-debug.log
+build
 dist
-coverage

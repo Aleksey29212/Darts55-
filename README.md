@@ -1,65 +1,7 @@
-# 🎯 DartBrig Pro (Darts55) - Релизная версия
+# Darts55 - Production Deployment
 
-Профессиональная система управления дартс-турнирами, оптимизированная для **hosting.timeweb.ru**.
+This project is configured for automated deployment to Timeweb via Docker and GitHub Actions.
 
----
+### Deployment
 
-## 🚀 Отправка обновлений на GitHub
-
-Весь процесс полностью автоматизирован. Чтобы отправить последние изменения в ваш репозиторий на GitHub, выполните одну команду в терминале:
-
-```bash
-npm run github-push
-```
-
-### **Первоначальная настройка (делается один раз)**
-
-При первой отправке скрипт может выдать ошибку и попросить вас создать `GITHUB_TOKEN`. Это ваш ключ доступа к GitHub.
-
-1.  **Создайте токен**: Перейдите по ссылке [**github.com/settings/tokens/new**](https://github.com/settings/tokens/new).
-2.  Выберите **`Tokens (classic)`**.
-3.  Нажмите **`Generate new token (classic)`**.
-4.  **Название**: `dartbrig-cli`.
-5.  **Срок действия**: `No expiration` (Без срока действия) для удобства.
-6.  **Права**: Поставьте галочки напротив **`repo`** и **`workflow`**.
-7.  Нажмите **`Generate token`**.
-8.  **Скопируйте токен** (он будет начинаться с `ghp_...`).
-9.  **Вставьте в проект**: Откройте файл `.env` в корне вашего проекта и добавьте строку:
-    ```
-    GITHUB_TOKEN=[ВАШ_СКОПИРОВАННЫЙ_ТОКЕН]
-    ```
-
-После этого команда `npm run github-push` будет работать без паролей и дополнительных вопросов.
-
----
-
-## ☁️ Деплой на Timeweb (Автоматический)
-
-Проект использует режим `standalone` и **полностью автоматизированное развертывание** через GitHub Actions.
-
-### Шаг 1: Первоначальная настройка
-
-Вам нужно один раз настроить связь между GitHub и Timeweb, а также указать переменные окружения.
-
-1.  **Добавьте FTP/SFTP доступы в секреты GitHub**:
-    *   Найдите доступы в панели Timeweb (сервер, логин, пароль).
-    *   В настройках вашего репозитория GitHub, в разделе **Settings -> Secrets and variables -> Actions**, создайте три секрета: `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`.
-    
-2.  **Настройте Node.js в Timeweb**:
-    *   В панели Timeweb в настройках Node.js укажите **точку входа `server.js`** и **путь к приложению `/public_html`**.
-    *   Там же, в панели Timeweb, добавьте все необходимые **переменные окружения** (`NEXT_PUBLIC_ADMIN_PASSWORD`, ключи Firebase и т.д.).
-
-Подробная инструкция находится в файле `DEPLOYMENT_GUIDE.md`.
-
-### Шаг 2: Отправка обновлений
-
-Просто отправьте код в `main` ветку (например, командой `npm run github-push`).
-
-GitHub Actions автоматически соберет проект и загрузит его на хостинг. Вам больше не нужно ничего делать вручную!
-
----
-
-## 🛠 Разработка
-- `npm run dev` — запуск локально на порту 9002.
-- `npm run typecheck` — проверка типов TypeScript.
-- `npm test` — запуск тестов (Vitest).
+Pushing to the `main` branch will trigger the GitHub Actions workflow to build and deploy the application.
