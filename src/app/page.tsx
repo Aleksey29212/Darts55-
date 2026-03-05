@@ -6,7 +6,6 @@ import { LeaguePanels } from '@/components/league-panels';
 import { PartnersDisplay } from '@/components/partners-display';
 import { getPartners } from '@/lib/partners';
 import { getTournaments } from '@/lib/tournaments';
-import { DartsMarquee } from '@/components/darts-marquee';
 import { PlayerSelector } from '@/components/player-selector';
 import { unstable_noStore as noStore } from 'next/cache';
 
@@ -42,9 +41,8 @@ export default async function Home({ searchParams }: { searchParams: { league?: 
           defaultTab={defaultTab}
           allScoringSettings={allScoringSettings}
         />
+        <PartnersDisplay partners={partners} tournaments={tournaments} variant="default" />
       </div>
-      <PartnersDisplay partners={partners} tournaments={tournaments} variant="compact" />
-      <DartsMarquee />
     </main>
   );
 }
