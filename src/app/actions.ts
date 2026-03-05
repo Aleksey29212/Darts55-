@@ -227,9 +227,13 @@ export async function importTournament(prevState: unknown, formData: FormData) {
   } catch (error: unknown) {
     console.error("Import tournament failed:", error); // Log the full error for server-side debugging
 
-    let message = 'Произошла неизвестная ошибка. ';
+    let message = 'Произошла неизвестная ошибка.';
     if (error instanceof Error) {
-        message = `Сообщение об ошибке: ${error.message}`;
+        if (error.message.includes('fetch failed')) {
+            message = `Не удалось связаться с сайтом-источником (dartsbase.ru). Возможные причины: сайт недоступен, блокирует запросы с сервера хостинга, или проблемы с сетью на сервере. Ошибка: ${error.message}`;
+        } else {
+            message = `Произошла ошибка во время выполнения: ${error.message}`;
+        }
     } else if (typeof error === 'string') {
         message = `Получена ошибка в виде строки: ${error}`;
     } else {
