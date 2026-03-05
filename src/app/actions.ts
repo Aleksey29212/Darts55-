@@ -77,14 +77,10 @@ export async function importTournament(prevState: unknown, formData: FormData) {
       ];
       
       for (const url of urlsToTry) {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000);
-          
           try {
               const response = await fetch(url, {
                 headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
                 cache: 'no-store',
-                signal: controller.signal
               });
               
               if (response.ok) {
@@ -92,14 +88,11 @@ export async function importTournament(prevState: unknown, formData: FormData) {
                   const $temp = cheerio.load(tempHtml);
                   if ($temp('table').length > 0) {
                       html = tempHtml;
-                      clearTimeout(timeoutId);
                       break;
                   }
               }
-              clearTimeout(timeoutId);
           } catch (fetchError: unknown) {
-              clearTimeout(timeoutId);
-              console.error(`Error fetching ${url}`);
+              console.error(`Error fetching ${url}`, fetchError);
           }
       }
 
