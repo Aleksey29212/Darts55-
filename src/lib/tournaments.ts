@@ -1,6 +1,6 @@
 
 
-import { collection, doc, getDocs, deleteDoc, writeBatch, Timestamp, getDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, deleteDoc, writeBatch, Timestamp, getDoc, type Firestore } from 'firebase/firestore';
 import { getDb } from '@/firebase/server';
 import type { Tournament, TournamentPlayerResult } from './types';
 import { unstable_noStore as noStore } from 'next/cache';
@@ -93,14 +93,9 @@ export async function getTournaments(): Promise<Tournament[]> {
   }
 }
 
-export async function addTournaments(newTournaments: Omit<Tournament, 'id'>[]): Promise<string[]> {
+export async function addTournaments(db: Firestore, newTournaments: Omit<Tournament, 'id'>[]): Promise<string[]> {
     if (!newTournaments || newTournaments.length === 0) return [];
     
-    const db = getDb();
-    if (!db) {
-      throw new Error("Database not available. Cannot add tournaments.");
-    }
-
     try {
         const batch = writeBatch(db);
         const actuallyAddedIds: string[] = [];
@@ -198,3 +193,5 @@ export async function clearAllTournamentData(): Promise<void> {
         throw e;
     }
 }
+
+    

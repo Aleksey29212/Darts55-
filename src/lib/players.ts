@@ -1,6 +1,6 @@
 
 
-import { collection, doc, getDoc, getDocs, setDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, writeBatch, type Firestore } from 'firebase/firestore';
 import { getDb } from '@/firebase/server';
 import type { PlayerProfile, SponsorInfo } from './types';
 import { unstable_noStore as noStore } from 'next/cache';
@@ -83,11 +83,7 @@ export async function getPlayerProfileById(id: string): Promise<PlayerProfile | 
   return undefined;
 }
 
-export async function updatePlayerProfiles(players: PlayerProfile[]): Promise<void> {
-  const db = getDb();
-  if (!db) {
-    throw new Error("Database not available. Cannot update player profiles.");
-  }
+export async function updatePlayerProfiles(db: Firestore, players: PlayerProfile[]): Promise<void> {
   try {
     const batch = writeBatch(db);
     players.forEach(player => {
@@ -101,11 +97,7 @@ export async function updatePlayerProfiles(players: PlayerProfile[]): Promise<vo
   }
 }
 
-export async function clearAllPlayerProfiles(): Promise<void> {
-  const db = getDb();
-  if (!db) {
-    throw new Error("Database not available. Cannot clear player profiles.");
-  }
+export async function clearAllPlayerProfiles(db: Firestore): Promise<void> {
   try {
     const playersCol = collection(db, 'players');
     const snapshot = await getDocs(playersCol);
@@ -121,5 +113,7 @@ export async function clearAllPlayerProfiles(): Promise<void> {
     throw e;
   }
 }
+
+    
 
     

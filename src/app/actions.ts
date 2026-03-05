@@ -51,16 +51,16 @@ export async function importTournament(prevState: unknown, formData: FormData) {
   if (!league) {
     return { success: false, message: 'Лига не выбрана.' };
   }
+  
+  const db = getDb();
+  if (!db) {
+      return { success: false, message: 'Критическая ошибка: Не удалось подключиться к базе данных. Проверьте, что переменные окружения Firebase (например, NEXT_PUBLIC_FIREBASE_PROJECT_ID) заданы на вашем сервере.' };
+  }
 
   try {
     const tournamentIds = tournamentIdsRaw.match(/\d+/g) || [];
     if (tournamentIds.length === 0) return { success: false, message: 'Не найдены корректные ID.' };
     
-    const db = getDb();
-    if (!db) {
-        throw new Error('Ошибка подключения к базе данных. Проверьте переменные окружения Firebase.');
-    }
-
     const scoringSettings = await getScoringSettings(league);
     const tournamentsToCreate: Omit<Tournament, 'id'>[] = [];
     let playerProfiles = await getPlayerProfiles();
@@ -221,11 +221,11 @@ export async function importTournament(prevState: unknown, formData: FormData) {
     }
 
     if (newPlayerProfiles.length > 0) {
-        await updatePlayerProfiles(newPlayerProfiles);
+        await updatePlayerProfiles(db, newPlayerProfiles);
     }
     
     if (tournamentsToCreate.length > 0) {
-        await addTournaments(tournamentsToCreate);
+        await addTournaments(db, tournamentsToCreate);
     }
 
     revalidateTag('rankings');
@@ -261,7 +261,7 @@ export async function updatePlayer(player: PlayerProfile) {
     if (!db) {
         throw new Error('Ошибка базы данных: нет подключения.');
     }
-    await updatePlayerProfiles([player]);
+    await updatePlayerProfiles(db, [player]);
     revalidateTag('rankings');
     revalidatePath('/', 'layout');
     return { success: true, message: 'Данные игрока обновлены.' };
@@ -321,7 +321,7 @@ export async function clearAllPlayerData() {
     if (!db) {
       throw new Error('Ошибка: База данных недоступна.');
     }
-    await clearAllPlayerProfiles();
+    await clearAllPlayerProfiles(db);
     await clearAllTournamentData();
     revalidateTag('rankings');
     revalidatePath('/', 'layout');
@@ -535,3 +535,5 @@ export async function triggerDeploymentAction() {
         return { success: false, message };
     }
 }
+
+    
