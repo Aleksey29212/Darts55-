@@ -4,7 +4,7 @@ import type { ScoringSettings, AllLeagueSettings, LeagueId, SponsorshipSettings,
 import { unstable_noStore as noStore } from 'next/cache';
 import defaultScoringSettingsData from './scoring-settings.json';
 
-const defaultAllLeagueSettings: AllLeagueSettings = {
+export const defaultAllLeagueSettings: AllLeagueSettings = {
     general: { enabled: true, name: 'Общий рейтинг' },
     premier: { enabled: false, name: 'Премьер-лига' },
     first: { enabled: false, name: 'Первая лига' },

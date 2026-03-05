@@ -1,5 +1,4 @@
-
-import { getLeagueSettings, getAllScoringSettings } from '@/lib/settings';
+import { getLeagueSettings, getAllScoringSettings, defaultAllLeagueSettings } from '@/lib/settings';
 import { getRankings } from '@/lib/leagues';
 import type { LeagueId } from '@/lib/types';
 import { LeaguePanels } from '@/components/league-panels';
@@ -11,10 +10,11 @@ import { unstable_noStore as noStore } from 'next/cache';
 
 export default async function Home({ searchParams }: { searchParams: { league?: LeagueId }}) {
   noStore();
-  const leagueSettings = await getLeagueSettings();
+  const leagueSettingsData = await getLeagueSettings();
+  const leagueSettings = leagueSettingsData || defaultAllLeagueSettings;
   const allScoringSettings = await getAllScoringSettings();
   
-  const enabledLeagues = (Object.keys(leagueSettings) as LeagueId[]).filter(key => leagueSettings[key].enabled);
+  const enabledLeagues = (Object.keys(leagueSettings) as LeagueId[]).filter(key => leagueSettings[key]?.enabled);
   const rankings = await Promise.all(enabledLeagues.map(id => getRankings(id)));
   
   const partners = await getPartners();
