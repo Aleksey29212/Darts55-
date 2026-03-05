@@ -128,7 +128,7 @@ export async function addTournaments(newTournaments: Omit<Tournament, 'id'>[]): 
         return actuallyAddedIds;
     } catch (e) {
         console.error('Failed to add tournaments:', e);
-        throw e;
+        throw new Error(`Ошибка Firestore при добавлении турниров: ${e instanceof Error ? e.message : e}`);
     }
 }
 

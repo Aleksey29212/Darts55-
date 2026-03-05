@@ -1,4 +1,5 @@
 
+
 import { collection, doc, getDoc, getDocs, setDoc, writeBatch } from 'firebase/firestore';
 import { getDb } from '@/firebase/server';
 import type { PlayerProfile, SponsorInfo } from './types';
@@ -96,7 +97,7 @@ export async function updatePlayerProfiles(players: PlayerProfile[]): Promise<vo
     await batch.commit();
   } catch (e) {
     console.error('Failed to update player profiles:', e);
-    throw e;
+    throw new Error(`Ошибка Firestore при обновлении профилей игроков: ${e instanceof Error ? e.message : e}`);
   }
 }
 
