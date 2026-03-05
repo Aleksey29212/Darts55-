@@ -69,8 +69,8 @@ export default async function RootLayout({
                 <ThemeApplier initialTheme={theme} />
                 <div className="relative flex min-h-screen flex-col">
                   <Header />
-                  <DartsMarquee />
                   <div className="flex-1">{children}</div>
+                  <DartsMarquee />
                 </div>
                 <Toaster />
                 <AdminLoginTrigger />
