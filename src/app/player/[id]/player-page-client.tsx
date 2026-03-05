@@ -11,7 +11,7 @@ import type { Player, PlayerTournamentHistory, ScoringSettings, LeagueId } from 
 import { TournamentHistory } from '@/components/tournament-history';
 import { useIsClient } from '@/hooks/use-is-client';
 import { ShareButtons } from '@/components/share-buttons';
-import { PlayerAnalyticsTabs } from '@/components/player-analytics-tabs';
+import { PlayerAnalyticsCarousel } from '@/components/player-analytics-carousel';
 
 export function PlayerPageClient({
   player,
@@ -21,6 +21,7 @@ export function PlayerPageClient({
   contextId,
   leagueId,
   scoringSettings,
+  leagueName,
 }: {
   player: Player;
   tournaments: PlayerTournamentHistory[];
@@ -67,8 +68,8 @@ export function PlayerPageClient({
           />
         </div>
         <div className="lg:col-span-2 space-y-8 lg:sticky lg:top-24">
-          {/* Analytics Block - New placement right of player */}
-          <PlayerAnalyticsTabs player={player} tournaments={tournaments} viewMode={viewMode} />
+          {/* Analytics Block - Reverted to Carousel */}
+          <PlayerAnalyticsCarousel player={player} tournaments={tournaments} viewMode={viewMode} />
           
           {isClient && isAdmin && <TemplateSwitcher selectedTemplate={template} onTemplateChange={setTemplate} />}
           <ShareButtons player={player} />
