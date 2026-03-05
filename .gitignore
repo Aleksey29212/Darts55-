@@ -4,6 +4,7 @@
 /node_modules
 /.pnp
 .pnp.js
+.yarn/install-state.gz
 
 # testing
 /coverage
@@ -14,18 +15,16 @@
 
 # production
 /build
-/deploy
 
 # misc
 .DS_Store
 *.pem
-*.swp
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-*.log
+pnpm-debug.log*
 
 # local env files
 .env
@@ -38,8 +37,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Editor directories and files
-.idea
-.vscode
-*.*.swp
-*.sublime-workspace
+# studio
+/studio/dist
+/studio/.cache
+
+# workspace
+/workspace/.next
+/workspace/out
+/workspace/build
