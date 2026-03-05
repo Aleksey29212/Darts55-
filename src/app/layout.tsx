@@ -11,6 +11,7 @@ import { ThemeApplier } from '@/components/theme-applier';
 import { getThemeSettings } from '@/lib/settings';
 import { MobileProvider } from '@/hooks/use-mobile';
 import { VisitLogger } from '@/components/visit-logger';
+import { DartsMarquee } from '@/components/darts-marquee';
 import './globals.css';
 
 const inter = Inter({ 
@@ -68,6 +69,7 @@ export default async function RootLayout({
                 <ThemeApplier initialTheme={theme} />
                 <div className="relative flex min-h-screen flex-col">
                   <Header />
+                  <DartsMarquee />
                   <div className="flex-1">{children}</div>
                 </div>
                 <Toaster />
