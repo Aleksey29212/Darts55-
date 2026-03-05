@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { Copy, Check, ExternalLink, Handshake, PlusCircle, ShoppingBag, Gamepad2, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useRef } from 'react';
-import type { Partner, Tournament, PartnerCategory } from '@/lib/types';
+import type { Partner, PartnerCategory } from '@/lib/types';
 import {
   Carousel,
   CarouselContent,
@@ -174,87 +174,47 @@ function RecruitmentCard({ variant }: { variant: 'default' | 'compact' }) {
 
 
 export function PartnersDisplay({ partners, variant = 'default' }: { partners: Partner[], variant?: 'default' | 'compact' }) {
-    const [isClient, setIsClient] = useState(false);
-    const [api, setApi] = useState<CarouselApi>();
-    const [activeIndex, setActiveIndex] = useState(0);
-
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
-
-    useEffect(() => {
-        if (!api) return;
-        const onSelect = () => {
-            setActiveIndex(api.selectedScrollSnap());
-        };
-        api.on("select", onSelect);
-        return () => {
-            api.off("select", onSelect);
-        };
-    }, [api]);
-    
     if (!partners) {
         return null;
     }
     
     const isCompact = variant === 'compact';
-    const containerClasses = isCompact ? "w-full py-4 px-4" : "container py-12";
-    const skeletonClasses = isCompact ? "h-16 w-32 rounded-xl" : "h-44 w-44 rounded-xl";
+    const containerClasses = isCompact ? "w-full py-2" : "container py-12";
+    const displayPartners = isCompact ? partners.slice(0, 7) : partners;
 
-    if (!isClient) {
+    if (isCompact) {
         return (
-            <div className={containerClasses}>
-                <Carousel opts={{ align: "start", loop: true }} className="w-full">
-                    <CarouselContent>
-                        {Array.from({ length: 5 }).map((_, index) => (
-                            <CarouselItem key={index} className="basis-auto">
-                                <Skeleton className={skeletonClasses} />
-                            </CarouselItem>
-                        ))}
-                    </CarouselContent>
-                </Carousel>
+             <div className={containerClasses}>
+                <div className="flex items-center justify-center gap-4 px-4 overflow-x-auto no-scrollbar">
+                    {displayPartners.map((partner) => (
+                        <div key={partner.id} className="shrink-0">
+                           <PartnerCard partner={partner} variant={variant} />
+                        </div>
+                    ))}
+                    <div className="shrink-0">
+                       <RecruitmentCard variant={variant} />
+                    </div>
+                </div>
             </div>
-        )
+        );
     }
 
     return (
         <div className={containerClasses}>
-            {!isCompact && (
-                <div className="flex items-center gap-2 mb-10">
-                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent hidden sm:block" />
-                    <div className="flex items-center gap-2 px-6 py-2 rounded-full bg-secondary/50 border border-border shadow-lg">
-                        <Handshake className="h-5 w-5 text-primary" />
-                        <span className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground">Наши партнеры</span>
-                    </div>
-                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent hidden sm:block" />
+            <div className="flex items-center gap-2 mb-10">
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent hidden sm:block" />
+                <div className="flex items-center gap-2 px-6 py-2 rounded-full bg-secondary/50 border border-border shadow-lg">
+                    <Handshake className="h-5 w-5 text-primary" />
+                    <span className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground">Наши партнеры</span>
                 </div>
-            )}
-            <Carousel
-                setApi={setApi}
-                opts={{
-                    align: "center",
-                    loop: true,
-                }}
-                plugins={[
-                    Autoplay({
-                        delay: 5000,
-                        stopOnInteraction: false,
-                        stopOnMouseEnter: true,
-                    }),
-                ]}
-                className="w-full"
-            >
-                <CarouselContent className={cn(isCompact ? "-ml-4" : "-ml-8")}>
-                    {partners.map((partner, index) => (
-                         <CarouselItem key={partner.id} className={cn("basis-auto flex items-center justify-center", isCompact ? "pl-4" : "pl-8")}>
-                            <PartnerCard partner={partner} variant={variant} isFocused={activeIndex === index} />
-                         </CarouselItem>
-                    ))}
-                    <CarouselItem className={cn("basis-auto flex items-center justify-center", isCompact ? "pl-4" : "pl-8")}>
-                        <RecruitmentCard variant={variant} />
-                    </CarouselItem>
-                </CarouselContent>
-            </Carousel>
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent hidden sm:block" />
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-8">
+                {displayPartners.map((partner) => (
+                     <PartnerCard key={partner.id} partner={partner} variant={variant} />
+                ))}
+                <RecruitmentCard variant={variant} />
+            </div>
         </div>
     );
 }

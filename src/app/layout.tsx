@@ -12,6 +12,8 @@ import { getThemeSettings } from '@/lib/settings';
 import { MobileProvider } from '@/hooks/use-mobile';
 import { VisitLogger } from '@/components/visit-logger';
 import { DartsMarquee } from '@/components/darts-marquee';
+import { getPartners } from '@/lib/partners';
+import { PartnersDisplay } from '@/components/partners-display';
 import './globals.css';
 
 const inter = Inter({ 
@@ -59,6 +61,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const theme = await getThemeSettings();
+  const partners = await getPartners();
   
   return (
     <html lang="ru" className="dark">
@@ -69,8 +72,11 @@ export default async function RootLayout({
                 <ThemeApplier initialTheme={theme} />
                 <div className="relative flex min-h-screen flex-col">
                   <Header />
+                  <div className="sticky top-14 md:top-20 z-40 w-full border-b border-white/5 bg-background/90 backdrop-blur-xl shadow-lg">
+                    <DartsMarquee />
+                    <PartnersDisplay partners={partners} variant="compact" />
+                  </div>
                   <div className="flex-1">{children}</div>
-                  <DartsMarquee />
                 </div>
                 <Toaster />
                 <AdminLoginTrigger />

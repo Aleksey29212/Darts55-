@@ -43,7 +43,6 @@ export default async function Home({ searchParams }: { searchParams: { league?: 
         />
       </div>
       
-      <PartnersDisplay partners={partners} variant="default" />
     </main>
   );
 }
