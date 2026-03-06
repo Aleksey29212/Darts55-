@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getPlayerProfiles, updatePlayerProfiles, clearAllPlayerProfiles } from '@/lib/players';
@@ -176,18 +177,28 @@ export async function importTournament(prevState: unknown, formData: FormData) {
             pId = pId.substring(2, pId.length - 2);
           }
           
+          let nickname = 'PRO';
+          let newPlayerProfile: PlayerProfile | undefined;
+
           if (!playerProfiles.some(p => p.id === pId) && !allNewPlayerProfiles.some(p => p.id === pId)) {
-              allNewPlayerProfiles.push({
+              newPlayerProfile = {
                   id: pId, name, nickname: getRandomNickname(),
                   avatarUrl: `https://picsum.photos/seed/${encodeURIComponent(name)}/400/400`,
                   bio: 'Авто-профиль.', imageHint: 'person portrait',
                   backgroundUrl: 'https://images.unsplash.com/photo-1544098485-2a216e2133c1',
                   backgroundImageHint: 'darts background'
-              });
+              };
+              allNewPlayerProfiles.push(newPlayerProfile);
+              nickname = newPlayerProfile.nickname;
+          } else {
+              const existingProfile = playerProfiles.find(p => p.id === pId) || allNewPlayerProfiles.find(p => p.id === pId);
+              if (existingProfile) {
+                  nickname = existingProfile.nickname;
+              }
           }
 
           const playerResult: TournamentPlayerResult = {
-            id: pId, name, nickname: 'PRO', rank,
+            id: pId, name, nickname, rank,
             points: 0, basePoints: 0, bonusPoints: 0,
             pointsFor180s: 0, is180BonusApplied: false,
             pointsForHiOut: 0, isHiOutBonusApplied: false,
