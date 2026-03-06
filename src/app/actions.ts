@@ -5,41 +5,12 @@ import { getPlayerProfiles, updatePlayerProfiles, clearAllPlayerProfiles } from 
 import { addTournaments, clearAllTournamentData, deleteTournamentById, getTournaments } from '@/lib/tournaments';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import type { PlayerProfile, Tournament, ScoringSettings, LeagueId, AllLeagueSettings, TournamentPlayerResult, SponsorshipSettings } from '@/lib/types';
-import * as cheerio from 'cheerio';
 import { getAllScoringSettings, updateScoringSettings, updateLeagueSettings, getScoringSettings, updateBackgroundUrl, getLeagueSettings, updateSponsorshipSettings } from '@/lib/settings';
-import { calculatePlayerPoints } from '@/lib/scoring';
 import { getDb } from '@/firebase/server';
 import { addDoc, collection, doc, getDoc, serverTimestamp, setDoc, deleteDoc } from 'firebase/firestore';
 import { headers } from 'next/headers';
 import { calculateRankingsInternal } from '@/lib/leagues';
-
-const stageToRankMap: Record<string, number> = {
-    'победитель': 1,
-    'победа': 1,
-    '1 место': 1,
-    'финал': 2,
-    '2 место': 2,
-    '1/2': 3,
-    'полуфинал': 3,
-    '3-4': 3,
-    '1/4': 5,
-    'четвертьфинал': 5,
-    '5-8': 5,
-    '1/8': 9,
-    '9-16': 9,
-    '1/16': 17,
-    'резерв': 17,
-};
-
-const PRO_NICKNAMES = [
-    "Снайпер", "Молния", "Танк", "Ястреб", "Вихрь", "Стрела", "Профи", "Легенда", 
-    "Аллигатор", "Гром", "Авиатор", "Тигр", "Мастер", "Крепость", "Феникс", "Скорпион",
-    "Voltage", "The Power", "Warrior", "Bullseye", "The Machine", "Titan", "Ace"
-];
-
-function getRandomNickname() {
-    return PRO_NICKNAMES[Math.floor(Math.random() * PRO_NICKNAMES.length)];
-}
+import { scrapeDartsbaseTournament } from '@/lib/scraping';
 
 export async function importTournament(prevState: unknown, formData: FormData) {
   try {
@@ -66,165 +37,20 @@ export async function importTournament(prevState: unknown, formData: FormData) {
     const scoringSettings = await getScoringSettings(league);
     const tournamentsToCreate: Omit<Tournament, 'id'>[] = [];
     let playerProfiles = await getPlayerProfiles();
-    const newPlayerProfiles: PlayerProfile[] = [];
+    const allNewPlayerProfiles: PlayerProfile[] = [];
     const errors: string[] = [];
-
-    const parsedAtDate = new Date().toISOString();
 
     for (const tournamentId of tournamentIds) {
       try {
-        let html = '';
-        const urlsToTry = [
-            `https://dartsbase.ru/tournaments/${tournamentId}/stats`,
-            `https://dartsbase.ru/tournaments/${tournamentId}`
-        ];
+        const scrapedData = await scrapeDartsbaseTournament(tournamentId, league, scoringSettings, playerProfiles);
         
-        for (const url of urlsToTry) {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-            try {
-                const response = await fetch(url, {
-                    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
-                    cache: 'no-store',
-                    signal: controller.signal
-                });
-                
-                if (response.ok) {
-                    const tempHtml = await response.text();
-                    const $temp = cheerio.load(tempHtml);
-                    if ($temp('table').length > 0) {
-                        html = tempHtml;
-                        break; // Успешно, выходим из цикла попыток
-                    }
-                }
-            } catch (fetchError) {
-                if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-                    console.warn(`Запрос к ${url} превысил время ожидания.`);
-                } else {
-                    console.error(`Ошибка при загрузке ${url}:`, fetchError);
-                }
-            } finally {
-                clearTimeout(timeoutId); // Гарантированная очистка таймера
-            }
+        tournamentsToCreate.push(scrapedData.tournament);
+        
+        if (scrapedData.newPlayerProfiles.length > 0) {
+            allNewPlayerProfiles.push(...scrapedData.newPlayerProfiles);
+            // Update local cache of profiles to avoid duplicates in the same run
+            playerProfiles.push(...scrapedData.newPlayerProfiles);
         }
-
-        if (!html) {
-            throw new Error('Не удалось загрузить страницу турнира или на ней нет таблиц.');
-        }
-      
-        const $ = cheerio.load(html);
-        const h1Text = $('h1').text().trim();
-        let tournamentName = $('h1').clone().find('span').remove().end().text().trim() || `Турнир #${tournamentId}`;
-        
-        let tournamentDate: Date | null = null;
-        const datePattern = /(\d{1,2})[./-](\d{1,2})[./-](\d{4})/;
-        
-        const dateInTitle = h1Text.match(datePattern);
-        if (dateInTitle) {
-            const day = parseInt(dateInTitle[1], 10);
-            const month = parseInt(dateInTitle[2], 10);
-            const year = parseInt(dateInTitle[3], 10);
-            tournamentDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-            tournamentName = tournamentName.replace(dateInTitle[0], '').replace(/\s+/g, ' ').trim();
-            tournamentName = tournamentName.replace(/[.,\s/:-]+$/, '').trim();
-        }
-
-        const eventDateFinal = tournamentDate || new Date();
-        
-        let table = $('table').filter((i, el) => {
-            const h = $(el).find('thead th').text().toLowerCase();
-            return h.includes('стадия') || h.includes('место') || h.includes('игрок') || h.includes('avg');
-        }).first();
-        
-        if (table.length === 0) table = $('table').first();
-
-        const headerMap: Record<string, number> = {};
-        table.find('thead tr th').each((i, el) => {
-          const txt = $(el).text().trim().toLowerCase();
-          if (txt === 'avg' || txt === 'ср' || txt === 'ср.' || txt === 'average') headerMap['avg'] = i;
-          else if (txt.includes('hi') || txt.includes('закрытие') || txt.includes('out')) headerMap['hiout'] = i;
-          else if (txt.includes('best') || txt.includes('лучший') || txt.includes('leg')) headerMap['bestleg'] = i;
-          else if (txt.includes('180') || txt.includes('max')) headerMap['180'] = i;
-          else if (txt.includes('место') || txt === '#' || txt === 'rank' || txt.includes('стадия')) headerMap['rank'] = i;
-          else if (txt.includes('игрок') || txt.includes('player') || txt === 'имя') headerMap['name'] = i;
-        });
-        
-        const rankIdx = headerMap['rank'] ?? 0;
-        const nameIdx = headerMap['name'] ?? (rankIdx === 0 ? 1 : 0);
-        const avgIdx = headerMap['avg'];
-
-        const results: TournamentPlayerResult[] = [];
-        table.find('tbody tr').each((i, row) => {
-          const cols = $(row).find('td');
-          if (cols.length < 2) return;
-
-          const getTxt = (idx: number | undefined) => idx !== undefined ? $(cols[idx]).text().trim() : '';
-          const cleanInt = (v: string) => parseInt(v.replace(/[^\d]/g, ''), 10) || 0;
-          const cleanFloat = (v: string) => parseFloat(v.replace(',', '.').replace(/[^\d.]/g, '')) || 0;
-
-          const rankTxt = getTxt(rankIdx).toLowerCase();
-          let rank = 0;
-          for (const [k, v] of Object.entries(stageToRankMap)) {
-              if (rankTxt.includes(k)) { rank = v; break; }
-          }
-          if (rank === 0) rank = parseInt(rankTxt, 10) || (i + 1);
-          
-          const nameCell = cols.eq(nameIdx);
-          const name = nameCell.find('a').text().trim() || nameCell.text().trim();
-          if (!name) return;
-
-          let pId = nameCell.find('a').attr('href')?.split('/').pop() || name.replace(/\s+/g, '-').toLowerCase();
-          pId = pId.replace(/[./\\[\\]*]/g, '_');
-          // Handle Firestore reserved __.*__ pattern
-          if (pId.startsWith('__') && pId.endsWith('__') && pId.length > 4) {
-            pId = pId.substring(2, pId.length - 2);
-          }
-          
-          if (!playerProfiles.some(p => p.id === pId) && !newPlayerProfiles.some(p => p.id === pId)) {
-              newPlayerProfiles.push({
-                  id: pId, name, nickname: getRandomNickname(),
-                  avatarUrl: `https://picsum.photos/seed/${encodeURIComponent(name)}/400/400`,
-                  bio: 'Авто-профиль.', imageHint: 'person portrait',
-                  backgroundUrl: 'https://images.unsplash.com/photo-1544098485-2a216e2133c1',
-                  backgroundImageHint: 'darts background'
-              });
-          }
-
-          const playerResult: TournamentPlayerResult = {
-            id: pId, name, nickname: 'PRO', rank,
-            points: 0, basePoints: 0, bonusPoints: 0,
-            pointsFor180s: 0, is180BonusApplied: false,
-            pointsForHiOut: 0, isHiOutBonusApplied: false,
-            pointsForAvg: 0, isAvgBonusApplied: false,
-            pointsForBestLeg: 0, isBestLegBonusApplied: false,
-            pointsFor9Darter: 0, is9DarterBonusApplied: false,
-            avatarUrl: `https://picsum.photos/seed/${encodeURIComponent(name)}/400/400`,
-            imageHint: 'person portrait',
-            avg: cleanFloat(getTxt(avgIdx)),
-            n180s: cleanInt(getTxt(headerMap['180'])),
-            hiOut: cleanInt(getTxt(headerMap['hiout'])),
-            bestLeg: cleanInt(getTxt(headerMap['bestleg'])),
-            nineDarters: 0,
-          };
-
-          calculatePlayerPoints(playerResult, scoringSettings, league);
-          results.push(playerResult);
-        });
-
-        if (results.length === 0) {
-            throw new Error('Не найдено ни одного игрока в таблице результатов.');
-        }
-
-        tournamentsToCreate.push({
-          id: tournamentId, 
-          name: tournamentName,
-          date: eventDateFinal.toISOString(), 
-          eventDate: eventDateFinal.toISOString(), 
-          parsedAt: parsedAtDate,
-          league, 
-          players: results,
-        } as any);
 
       } catch (error: unknown) {
           const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
@@ -233,8 +59,10 @@ export async function importTournament(prevState: unknown, formData: FormData) {
       }
     }
 
-    if (newPlayerProfiles.length > 0) {
-        await updatePlayerProfiles(db, newPlayerProfiles);
+    if (allNewPlayerProfiles.length > 0) {
+        // Remove duplicates before saving
+        const uniqueNewProfiles = allNewPlayerProfiles.filter((p, i, a) => a.findIndex(p2 => p2.id === p.id) === i);
+        await updatePlayerProfiles(db, uniqueNewProfiles);
     }
     if (tournamentsToCreate.length > 0) {
         await addTournaments(db, tournamentsToCreate);
