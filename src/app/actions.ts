@@ -45,9 +45,10 @@ export async function importTournament(prevState: unknown, formData: FormData) {
   const tournamentIdsRaw = formData.get('tournamentId');
   const league = formData.get('league') as LeagueId;
 
+  // 1. Initial Database Connection Check
   const db = getDb();
   if (!db) {
-      return { success: false, message: 'Критическая ошибка: Не удалось подключиться к базе данных. Проверьте, что переменные окружения Firebase (например, NEXT_PUBLIC_FIREBASE_PROJECT_ID) заданы в панели управления вашего хостинга.' };
+      return { success: false, message: 'Критическая ошибка: Не удалось подключиться к базе данных. Проверьте переменные окружения Firebase в панели управления вашего хостинга.' };
   }
 
   if (!tournamentIdsRaw || typeof tournamentIdsRaw !== 'string') {
@@ -57,195 +58,185 @@ export async function importTournament(prevState: unknown, formData: FormData) {
     return { success: false, message: 'Лига не выбрана.' };
   }
   
-  try {
-    const tournamentIds = tournamentIdsRaw.match(/\d+/g) || [];
-    if (tournamentIds.length === 0) return { success: false, message: 'Не найдены корректные ID.' };
-    
-    const scoringSettings = await getScoringSettings(league);
-    const tournamentsToCreate: Omit<Tournament, 'id'>[] = [];
-    let playerProfiles = await getPlayerProfiles();
-    const newPlayerProfiles: PlayerProfile[] = [];
-    const errors: string[] = [];
-
-    const parsedAtDate = new Date().toISOString();
-
-    for (const tournamentId of tournamentIds) {
-        let html = '';
-        const urlsToTry = [
-            `https://dartsbase.ru/tournaments/${tournamentId}/stats`,
-            `https://dartsbase.ru/tournaments/${tournamentId}`
-        ];
-        
-        for (const url of urlsToTry) {
-            const response = await fetch(url, {
-                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
-                cache: 'no-store',
-            });
-            
-            if (response.ok) {
-                const tempHtml = await response.text();
-                const $temp = cheerio.load(tempHtml);
-                if ($temp('table').length > 0) {
-                    html = tempHtml;
-                    break;
-                }
-            }
-        }
-
-        if (!html) {
-            errors.push(`Турнир #${tournamentId}: не удалось загрузить или найти данные.`);
-            continue;
-        }
-      
-        try {
-            const $ = cheerio.load(html);
-            const h1Text = $('h1').text().trim();
-            let tournamentName = $('h1').clone().find('span').remove().end().text().trim() || `Турнир #${tournamentId}`;
-            
-            let tournamentDate: Date | null = null;
-            const datePattern = /(\d{1,2})[./-](\d{1,2})[./-](\d{4})/;
-            
-            const dateInTitle = h1Text.match(datePattern);
-            if (dateInTitle) {
-                const day = parseInt(dateInTitle[1], 10);
-                const month = parseInt(dateInTitle[2], 10);
-                const year = parseInt(dateInTitle[3], 10);
-                tournamentDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-                tournamentName = tournamentName.replace(dateInTitle[0], '').replace(/\s+/g, ' ').trim();
-                tournamentName = tournamentName.replace(/[.,\s/:-]+$/, '').trim();
-            }
-
-            const eventDateFinal = tournamentDate || new Date();
-            
-            let table = $('table').filter((i, el) => {
-                const h = $(el).find('thead th').text().toLowerCase();
-                return h.includes('стадия') || h.includes('место') || h.includes('игрок') || h.includes('avg');
-            }).first();
-            
-            if (table.length === 0) table = $('table').first();
-
-            const headerMap: Record<string, number> = {};
-            table.find('thead tr th').each((i, el) => {
-              const txt = $(el).text().trim().toLowerCase();
-              if (txt === 'avg' || txt === 'ср' || txt === 'ср.' || txt === 'average') headerMap['avg'] = i;
-              else if (txt.includes('hi') || txt.includes('закрытие') || txt.includes('out')) headerMap['hiout'] = i;
-              else if (txt.includes('best') || txt.includes('лучший') || txt.includes('leg')) headerMap['bestleg'] = i;
-              else if (txt.includes('180') || txt.includes('max')) headerMap['180'] = i;
-              else if (txt.includes('место') || txt === '#' || txt === 'rank' || txt.includes('стадия')) headerMap['rank'] = i;
-              else if (txt.includes('игрок') || txt.includes('player') || txt === 'имя') headerMap['name'] = i;
-            });
-            
-            const rankIdx = headerMap['rank'] ?? 0;
-            const nameIdx = headerMap['name'] ?? (rankIdx === 0 ? 1 : 0);
-            const avgIdx = headerMap['avg'];
-
-            const results: TournamentPlayerResult[] = [];
-            table.find('tbody tr').each((i, row) => {
-              const cols = $(row).find('td');
-              if (cols.length < 2) return;
-
-              const getTxt = (idx: number | undefined) => idx !== undefined ? $(cols[idx]).text().trim() : '';
-              const cleanInt = (v: string) => parseInt(v.replace(/[^\d]/g, ''), 10) || 0;
-              const cleanFloat = (v: string) => parseFloat(v.replace(',', '.').replace(/[^\d.]/g, '')) || 0;
-
-              const rankTxt = getTxt(rankIdx).toLowerCase();
-              let rank = 0;
-              for (const [k, v] of Object.entries(stageToRankMap)) {
-                  if (rankTxt.includes(k)) { rank = v; break; }
-              }
-              if (rank === 0) rank = parseInt(rankTxt, 10) || (i + 1);
-              
-              const nameCell = cols.eq(nameIdx);
-              const name = nameCell.find('a').text().trim() || nameCell.text().trim();
-              if (!name) return;
-
-              let pId = nameCell.find('a').attr('href')?.split('/').pop() || name.replace(/\s+/g, '-').toLowerCase();
-              pId = pId.replace(/[./\\[\\]*]/g, '_');
-              
-              if (!playerProfiles.some(p => p.id === pId) && !newPlayerProfiles.some(p => p.id === pId)) {
-                  newPlayerProfiles.push({
-                      id: pId, name, nickname: getRandomNickname(),
-                      avatarUrl: `https://picsum.photos/seed/${encodeURIComponent(name)}/400/400`,
-                      bio: 'Авто-профиль.', imageHint: 'person portrait',
-                      backgroundUrl: 'https://images.unsplash.com/photo-1544098485-2a216e2133c1',
-                      backgroundImageHint: 'darts background'
-                  });
-              }
-
-              const playerResult: TournamentPlayerResult = {
-                id: pId, name, nickname: 'PRO', rank,
-                points: 0, basePoints: 0, bonusPoints: 0,
-                pointsFor180s: 0, is180BonusApplied: false,
-                pointsForHiOut: 0, isHiOutBonusApplied: false,
-                pointsForAvg: 0, isAvgBonusApplied: false,
-                pointsForBestLeg: 0, isBestLegBonusApplied: false,
-                pointsFor9Darter: 0, is9DarterBonusApplied: false,
-                avatarUrl: `https://picsum.photos/seed/${encodeURIComponent(name)}/400/400`,
-                imageHint: 'person portrait',
-                avg: cleanFloat(getTxt(avgIdx)),
-                n180s: cleanInt(getTxt(headerMap['180'])),
-                hiOut: cleanInt(getTxt(headerMap['hiout'])),
-                bestLeg: cleanInt(getTxt(headerMap['bestleg'])),
-                nineDarters: 0,
-              };
-
-              calculatePlayerPoints(playerResult, scoringSettings, league);
-              results.push(playerResult);
-            });
-
-            tournamentsToCreate.push({
-              id: tournamentId, 
-              name: tournamentName,
-              date: eventDateFinal.toISOString(), 
-              eventDate: eventDateFinal.toISOString(), 
-              parsedAt: parsedAtDate,
-              league, 
-              players: results,
-            } as any);
-
-        } catch (e: unknown) {
-            errors.push(`${tournamentId}: Ошибка разбора данных (parsing error)`);
-        }
-    }
-
-    try {
-        if (newPlayerProfiles.length > 0) {
-            await updatePlayerProfiles(db, newPlayerProfiles);
-        }
-        
-        if (tournamentsToCreate.length > 0) {
-            await addTournaments(db, tournamentsToCreate);
-        }
-    } catch (dbError: unknown) {
-        if (dbError instanceof Error) {
-            throw new Error(`DB_WRITE_ERROR: ${dbError.message}`);
-        }
-        throw new Error('DB_WRITE_ERROR: Произошла неизвестная ошибка при записи в базу данных.');
-    }
-
-
-    revalidateTag('rankings');
-    revalidatePath('/', 'layout');
-    return { success: true, message: `Импортировано: ${tournamentsToCreate.length}. Ошибок: ${errors.length > 0 ? errors.join('; ') : '0'}` };
-
-  } catch (error: unknown) {
-    console.error("Import tournament failed:", error);
-
-    let message = 'Произошла неизвестная ошибка.';
-    if (error instanceof Error) {
-        if (error.message.startsWith('DB_WRITE_ERROR')) {
-            message = `Ошибка записи в базу данных: ${error.message.replace('DB_WRITE_ERROR: ', '')}. Убедитесь, что у вас есть права на запись, и проверьте правила безопасности Firestore.`;
-        } else if (error.message.toLowerCase().includes('fetch failed')) {
-            message = `Сетевая ошибка: Не удалось связаться с сайтом-источником (dartsbase.ru). Это может быть связано с блокировкой IP-адреса вашего хостинга или временной недоступностью сайта. Ошибка: ${error.message}`;
-        } else {
-            message = `Произошла ошибка во время выполнения: ${error.message}`;
-        }
-    } else if (typeof error === 'string') {
-        message = `Получена ошибка в виде строки: ${error}`;
-    }
-
-    return { success: false, message: `Критическая ошибка во время импорта. ${message}` };
+  const tournamentIds = tournamentIdsRaw.match(/\d+/g) || [];
+  if (tournamentIds.length === 0) {
+      return { success: false, message: 'Не найдены корректные ID в строке.' };
   }
+    
+  const scoringSettings = await getScoringSettings(league);
+  const tournamentsToCreate: Omit<Tournament, 'id'>[] = [];
+  let playerProfiles = await getPlayerProfiles();
+  const newPlayerProfiles: PlayerProfile[] = [];
+  const errors: string[] = [];
+
+  const parsedAtDate = new Date().toISOString();
+
+  for (const tournamentId of tournamentIds) {
+      let html = '';
+      
+      // 2. Data Fetching Logic with clear error handling
+      try {
+          const urlsToTry = [
+              `https://dartsbase.ru/tournaments/${tournamentId}/stats`,
+              `https://dartsbase.ru/tournaments/${tournamentId}`
+          ];
+          
+          for (const url of urlsToTry) {
+              const response = await fetch(url, {
+                  headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+                  cache: 'no-store',
+              });
+              
+              if (response.ok) {
+                  const tempHtml = await response.text();
+                  const $temp = cheerio.load(tempHtml);
+                  if ($temp('table').length > 0) {
+                      html = tempHtml;
+                      break;
+                  }
+              }
+          }
+
+          if (!html) {
+              throw new Error('Не удалось загрузить страницу турнира или на ней нет таблиц.');
+          }
+
+      } catch (fetchError: unknown) {
+          const errorMessage = fetchError instanceof Error ? fetchError.message : 'Неизвестная сетевая проблема';
+          errors.push(`Турнир #${tournamentId}: Ошибка загрузки данных (вероятно, сайт заблокировал IP или недоступен). Сообщение: ${errorMessage}`);
+          continue; // Skip to the next tournament
+      }
+    
+      // 3. Parsing Logic with clear error handling
+      try {
+          const $ = cheerio.load(html);
+          const h1Text = $('h1').text().trim();
+          let tournamentName = $('h1').clone().find('span').remove().end().text().trim() || `Турнир #${tournamentId}`;
+          
+          let tournamentDate: Date | null = null;
+          const datePattern = /(\d{1,2})[./-](\d{1,2})[./-](\d{4})/;
+          
+          const dateInTitle = h1Text.match(datePattern);
+          if (dateInTitle) {
+              const day = parseInt(dateInTitle[1], 10);
+              const month = parseInt(dateInTitle[2], 10);
+              const year = parseInt(dateInTitle[3], 10);
+              tournamentDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+              tournamentName = tournamentName.replace(dateInTitle[0], '').replace(/\s+/g, ' ').trim();
+              tournamentName = tournamentName.replace(/[.,\s/:-]+$/, '').trim();
+          }
+
+          const eventDateFinal = tournamentDate || new Date();
+          
+          let table = $('table').filter((i, el) => {
+              const h = $(el).find('thead th').text().toLowerCase();
+              return h.includes('стадия') || h.includes('место') || h.includes('игрок') || h.includes('avg');
+          }).first();
+          
+          if (table.length === 0) table = $('table').first();
+
+          const headerMap: Record<string, number> = {};
+          table.find('thead tr th').each((i, el) => {
+            const txt = $(el).text().trim().toLowerCase();
+            if (txt === 'avg' || txt === 'ср' || txt === 'ср.' || txt === 'average') headerMap['avg'] = i;
+            else if (txt.includes('hi') || txt.includes('закрытие') || txt.includes('out')) headerMap['hiout'] = i;
+            else if (txt.includes('best') || txt.includes('лучший') || txt.includes('leg')) headerMap['bestleg'] = i;
+            else if (txt.includes('180') || txt.includes('max')) headerMap['180'] = i;
+            else if (txt.includes('место') || txt === '#' || txt === 'rank' || txt.includes('стадия')) headerMap['rank'] = i;
+            else if (txt.includes('игрок') || txt.includes('player') || txt === 'имя') headerMap['name'] = i;
+          });
+          
+          const rankIdx = headerMap['rank'] ?? 0;
+          const nameIdx = headerMap['name'] ?? (rankIdx === 0 ? 1 : 0);
+          const avgIdx = headerMap['avg'];
+
+          const results: TournamentPlayerResult[] = [];
+          table.find('tbody tr').each((i, row) => {
+            const cols = $(row).find('td');
+            if (cols.length < 2) return;
+
+            const getTxt = (idx: number | undefined) => idx !== undefined ? $(cols[idx]).text().trim() : '';
+            const cleanInt = (v: string) => parseInt(v.replace(/[^\d]/g, ''), 10) || 0;
+            const cleanFloat = (v: string) => parseFloat(v.replace(',', '.').replace(/[^\d.]/g, '')) || 0;
+
+            const rankTxt = getTxt(rankIdx).toLowerCase();
+            let rank = 0;
+            for (const [k, v] of Object.entries(stageToRankMap)) {
+                if (rankTxt.includes(k)) { rank = v; break; }
+            }
+            if (rank === 0) rank = parseInt(rankTxt, 10) || (i + 1);
+            
+            const nameCell = cols.eq(nameIdx);
+            const name = nameCell.find('a').text().trim() || nameCell.text().trim();
+            if (!name) return;
+
+            let pId = nameCell.find('a').attr('href')?.split('/').pop() || name.replace(/\s+/g, '-').toLowerCase();
+            pId = pId.replace(/[./\\[\\]*]/g, '_');
+            
+            if (!playerProfiles.some(p => p.id === pId) && !newPlayerProfiles.some(p => p.id === pId)) {
+                newPlayerProfiles.push({
+                    id: pId, name, nickname: getRandomNickname(),
+                    avatarUrl: `https://picsum.photos/seed/${encodeURIComponent(name)}/400/400`,
+                    bio: 'Авто-профиль.', imageHint: 'person portrait',
+                    backgroundUrl: 'https://images.unsplash.com/photo-1544098485-2a216e2133c1',
+                    backgroundImageHint: 'darts background'
+                });
+            }
+
+            const playerResult: TournamentPlayerResult = {
+              id: pId, name, nickname: 'PRO', rank,
+              points: 0, basePoints: 0, bonusPoints: 0,
+              pointsFor180s: 0, is180BonusApplied: false,
+              pointsForHiOut: 0, isHiOutBonusApplied: false,
+              pointsForAvg: 0, isAvgBonusApplied: false,
+              pointsForBestLeg: 0, isBestLegBonusApplied: false,
+              pointsFor9Darter: 0, is9DarterBonusApplied: false,
+              avatarUrl: `https://picsum.photos/seed/${encodeURIComponent(name)}/400/400`,
+              imageHint: 'person portrait',
+              avg: cleanFloat(getTxt(avgIdx)),
+              n180s: cleanInt(getTxt(headerMap['180'])),
+              hiOut: cleanInt(getTxt(headerMap['hiout'])),
+              bestLeg: cleanInt(getTxt(headerMap['bestleg'])),
+              nineDarters: 0,
+            };
+
+            calculatePlayerPoints(playerResult, scoringSettings, league);
+            results.push(playerResult);
+          });
+
+          tournamentsToCreate.push({
+            id: tournamentId, 
+            name: tournamentName,
+            date: eventDateFinal.toISOString(), 
+            eventDate: eventDateFinal.toISOString(), 
+            parsedAt: parsedAtDate,
+            league, 
+            players: results,
+          } as any);
+
+    } catch (parseError: unknown) {
+        const errorMessage = parseError instanceof Error ? parseError.message : 'Неизвестная ошибка разбора';
+        errors.push(`Турнир #${tournamentId}: Ошибка обработки данных (parsing). Сообщение: ${errorMessage}`);
+        continue; // Skip to the next tournament
+    }
+  }
+
+  // 4. Database Writing Logic with clear error handling
+  try {
+      if (newPlayerProfiles.length > 0) {
+          await updatePlayerProfiles(db, newPlayerProfiles);
+      }
+      if (tournamentsToCreate.length > 0) {
+          await addTournaments(db, tournamentsToCreate);
+      }
+  } catch (dbError: unknown) {
+      const errorMessage = dbError instanceof Error ? dbError.message : 'Неизвестная ошибка записи';
+      return { success: false, message: `Критическая ошибка: Не удалось записать данные в базу. Сообщение: ${errorMessage}. Проверьте правила безопасности Firestore.` };
+  }
+
+  revalidateTag('rankings');
+  revalidatePath('/', 'layout');
+  return { success: true, message: `Импорт завершен. Успешно: ${tournamentsToCreate.length}. Ошибок: ${errors.length > 0 ? errors.join('; ') : '0'}` };
 }
 
 export async function updatePlayer(player: PlayerProfile) {
