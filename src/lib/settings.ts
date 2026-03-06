@@ -1,3 +1,4 @@
+
 import { collection, doc, getDoc, getDocs, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getDb } from '@/firebase/server';
 import type { ScoringSettings, AllLeagueSettings, LeagueId, SponsorshipSettings, ThemeSettings } from './types';
@@ -122,9 +123,22 @@ export async function updateScoringSettings(leagueId: LeagueId, settings: Scorin
 
 export async function getLeagueSettings(): Promise<AllLeagueSettings> {
     noStore();
+    
+    // This local default ensures the function is self-contained and not reliant on module imports that might fail in some server environments.
+    const localDefaultSettings: AllLeagueSettings = {
+        general: { enabled: true, name: 'Общий рейтинг' },
+        premier: { enabled: false, name: 'Премьер-лига' },
+        first: { enabled: false, name: 'Первая лига' },
+        cricket: { enabled: false, name: 'Крикет' },
+        senior: { enabled: false, name: 'Сеньоры' },
+        youth: { enabled: false, name: 'Юниоры' },
+        women: { enabled: false, name: 'Женская лига' },
+        evening_omsk: { enabled: false, name: 'Вечерний Омск' },
+    };
+    
     const db = getDb();
     if (!db) {
-        return defaultAllLeagueSettings;
+        return localDefaultSettings;
     }
     try {
         const docRef = doc(db, 'app_settings', 'leagues');
@@ -132,14 +146,14 @@ export async function getLeagueSettings(): Promise<AllLeagueSettings> {
         if (docSnap.exists()) {
             const data = docSnap.data();
             const sanitized: any = {};
-            Object.keys(defaultAllLeagueSettings).forEach(key => {
+            Object.keys(localDefaultSettings).forEach(key => {
                 if (data[key]) {
                     sanitized[key] = {
                         enabled: Boolean(data[key].enabled),
                         name: String(data[key].name || '')
                     };
                 } else {
-                    sanitized[key] = (defaultAllLeagueSettings as any)[key];
+                    sanitized[key] = (localDefaultSettings as any)[key];
                 }
             });
             return sanitized as AllLeagueSettings;
@@ -147,7 +161,7 @@ export async function getLeagueSettings(): Promise<AllLeagueSettings> {
     } catch (e) {
         console.error('Error fetching league settings:', e);
     }
-    return defaultAllLeagueSettings;
+    return localDefaultSettings;
 }
 
 export async function updateLeagueSettings(settings: AllLeagueSettings): Promise<void> {
