@@ -238,8 +238,7 @@ export async function importTournament(prevState: unknown, formData: FormData) {
     }
 
     if (allNewPlayerProfiles.length > 0) {
-        const uniqueNewProfiles = allNewPlayerProfiles.filter((p, i, a) => a.findIndex(p2 => p2.id === p.id) === i);
-        await updatePlayerProfiles(db, uniqueNewProfiles);
+        await updatePlayerProfiles(db, allNewPlayerProfiles);
     }
     if (tournamentsToCreate.length > 0) {
         await addTournaments(db, tournamentsToCreate);
