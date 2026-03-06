@@ -143,15 +143,27 @@ export async function importTournament(prevState: unknown, formData: FormData) {
         const headerMap: Record<string, number> = {};
         table.find('thead tr th').each((i, el) => {
           const txt = $(el).text().trim().toLowerCase();
-          if (txt === 'avg' || txt === 'ср' || txt === 'ср.' || txt === 'average') headerMap['avg'] = i;
-          else if (txt.includes('hi') || txt.includes('закрытие') || txt.includes('out')) headerMap['hiout'] = i;
-          else if (txt.includes('best') || txt.includes('лучший') || txt.includes('leg')) headerMap['bestleg'] = i;
-          else if (txt.includes('180') || txt.includes('max')) headerMap['180'] = i;
-          else if (txt.includes('место') || txt === '#' || txt === 'rank' || txt.includes('стадия')) headerMap['rank'] = i;
-          else if (txt.includes('игрок') || txt.includes('player') || txt === 'имя') headerMap['name'] = i;
+          
+          if (txt === 'avg' || txt === 'ср' || txt === 'ср.' || txt === 'average') {
+            headerMap['avg'] = i;
+          }
+          if (txt.includes('hi-out') || txt.includes('hiout') || txt.includes('закрытие')) {
+            headerMap['hiout'] = i;
+          }
+          if (txt.includes('best') || txt.includes('лучший') || txt.includes('leg')) {
+            headerMap['bestleg'] = i;
+          }
+          if (txt.includes('180') || txt.includes('max')) {
+            headerMap['180'] = i;
+          }
+          if (txt.includes('место') || txt === '#' || txt.includes('rank') || txt.includes('стадия')) {
+            headerMap['rank'] = i;
+          }
+          if (txt.includes('игрок') || txt.includes('player') || txt === 'имя') {
+            headerMap['name'] = i;
+          }
         });
         
-        // Critical Check: Ensure essential columns were found
         if (headerMap['name'] === undefined || headerMap['rank'] === undefined) {
             throw new Error('Не удалось определить колонки "Игрок" и "Место" в таблице.');
         }
