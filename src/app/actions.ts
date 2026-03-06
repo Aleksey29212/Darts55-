@@ -65,9 +65,10 @@ export async function importTournament(prevState: unknown, formData: FormData) {
     }
       
     const scoringSettings = await getScoringSettings(league);
-    const tournamentsToCreate: Omit<Tournament, 'id'>[] = [];
-    let playerProfiles = await getPlayerProfiles();
+    const playerProfiles = await getPlayerProfiles();
+    const playerProfileMap = new Map(playerProfiles.map(p => [p.id, p]));
     const allNewPlayerProfiles: PlayerProfile[] = [];
+    const tournamentsToCreate: Omit<Tournament, 'id'>[] = [];
     const errors: string[] = [];
     const parsedAtDate = new Date().toISOString();
 
@@ -178,10 +179,10 @@ export async function importTournament(prevState: unknown, formData: FormData) {
           }
           
           let nickname = 'PRO';
-          let newPlayerProfile: PlayerProfile | undefined;
+          let existingProfile = playerProfileMap.get(pId);
 
-          if (!playerProfiles.some(p => p.id === pId) && !allNewPlayerProfiles.some(p => p.id === pId)) {
-              newPlayerProfile = {
+          if (!existingProfile) {
+              const newPlayerProfile: PlayerProfile = {
                   id: pId, name, nickname: getRandomNickname(),
                   avatarUrl: `https://picsum.photos/seed/${encodeURIComponent(name)}/400/400`,
                   bio: 'Авто-профиль.', imageHint: 'person portrait',
@@ -189,12 +190,10 @@ export async function importTournament(prevState: unknown, formData: FormData) {
                   backgroundImageHint: 'darts background'
               };
               allNewPlayerProfiles.push(newPlayerProfile);
+              playerProfileMap.set(pId, newPlayerProfile);
               nickname = newPlayerProfile.nickname;
           } else {
-              const existingProfile = playerProfiles.find(p => p.id === pId) || allNewPlayerProfiles.find(p => p.id === pId);
-              if (existingProfile) {
-                  nickname = existingProfile.nickname;
-              }
+              nickname = existingProfile.nickname;
           }
 
           const playerResult: TournamentPlayerResult = {
