@@ -176,6 +176,10 @@ export async function importTournament(prevState: unknown, formData: FormData) {
 
           let pId = nameCell.find('a').attr('href')?.split('/').pop() || name.replace(/\s+/g, '-').toLowerCase();
           pId = pId.replace(/[./\\[\\]*]/g, '_');
+          // Handle Firestore reserved __.*__ pattern
+          if (pId.startsWith('__') && pId.endsWith('__') && pId.length > 4) {
+            pId = pId.substring(2, pId.length - 2);
+          }
           
           if (!playerProfiles.some(p => p.id === pId) && !newPlayerProfiles.some(p => p.id === pId)) {
               newPlayerProfiles.push({
