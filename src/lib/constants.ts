@@ -1,6 +1,4 @@
 
-'use server';
-
 export const stageToRankMap: Record<string, number> = {
     'победитель': 1,
     'победа': 1,
