@@ -164,8 +164,8 @@ export async function importTournament(prevState: unknown, formData: FormData) {
           }
         });
         
-        if (headerMap['name'] === undefined || headerMap['rank'] === undefined) {
-            throw new Error('Не удалось определить колонки "Игрок" и "Место" в таблице.');
+        if (headerMap['name'] === undefined) {
+            throw new Error('Не удалось определить колонку "Игрок" в таблице.');
         }
 
         const rankIdx = headerMap['rank'];
