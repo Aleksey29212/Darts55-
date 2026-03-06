@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Player, SponsorshipSettings, SponsorInfo, LeagueId } from '@/lib/types';
@@ -18,10 +19,7 @@ interface PlayerRankingsProps {
 }
 
 function MobileRankings({ players, leagueId }: { players: Player[], leagueId?: LeagueId }) {
-    const db = useFirestore();
     const isOmsk = leagueId === 'evening_omsk';
-    const sponsorSettingsRef = useMemoFirebase(() => db ? doc(db, 'app_settings', 'sponsorship') : null, [db]);
-    const { data: globalSponsorSettings } = useDoc<SponsorshipSettings>(sponsorSettingsRef);
 
     return (
         <div className="w-full space-y-3 px-2 pb-8">
