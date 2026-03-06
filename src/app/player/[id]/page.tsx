@@ -12,6 +12,7 @@ import { Timestamp } from 'firebase/firestore';
 import { getAllScoringSettings, getLeagueSettings, getScoringSettings } from '@/lib/settings';
 import { calculatePlayerPoints } from '@/lib/scoring';
 import { formatDate } from '@/lib/utils';
+import { unstable_noStore as noStore } from 'next/cache';
 
 export default async function PlayerPage({
   params,
@@ -20,6 +21,7 @@ export default async function PlayerPage({
   params: { id: string };
   searchParams: { tournamentId?: string; league?: LeagueId };
 }) {
+  noStore();
   const playerId = decodeURIComponent(params.id);
   const tournamentId = searchParams?.tournamentId;
   const selectedLeague = searchParams?.league;

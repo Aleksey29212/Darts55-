@@ -43,13 +43,13 @@ function getRandomNickname() {
 
 export async function importTournament(prevState: unknown, formData: FormData) {
   try {
-    const tournamentIdsRaw = formData.get('tournamentId');
-    const league = formData.get('league') as LeagueId;
-
     const db = getDb();
     if (!db) {
       return { success: false, message: 'Критическая ошибка: Не удалось подключиться к базе данных. Проверьте переменные окружения Firebase в панели управления вашего хостинга.' };
     }
+
+    const tournamentIdsRaw = formData.get('tournamentId');
+    const league = formData.get('league') as LeagueId;
 
     if (!tournamentIdsRaw || typeof tournamentIdsRaw !== 'string') {
       return { success: false, message: 'Неверный ID турнира.' };
