@@ -135,26 +135,28 @@ export function ScoringForm({ leagueId, defaultValues }: ScoringFormProps) {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl border-2 border-primary/20 bg-primary/5 flex items-center justify-between shadow-inner">
-                    <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                            <Globe className="h-5 w-5 text-primary" />
-                            <FormLabel className="text-base font-bold uppercase tracking-tighter">Общий рейтинг</FormLabel>
-                        </div>
-                        <p className="text-xs text-muted-foreground">Учитывать в глобальной таблице.</p>
-                    </div>
-                    <FormField
-                        control={form.control}
-                        name="includeInGeneral"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormControl>
-                                    <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isPending || isProcessing} />
-                                </FormControl>
-                            </FormItem>
-                        )}
-                    />
-                </div>
+                {leagueId !== 'general' && (
+                  <div className="p-4 rounded-xl border-2 border-primary/20 bg-primary/5 flex items-center justify-between shadow-inner">
+                      <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                              <Globe className="h-5 w-5 text-primary" />
+                              <FormLabel className="text-base font-bold uppercase tracking-tighter">Общий рейтинг</FormLabel>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Учитывать в глобальной таблице.</p>
+                      </div>
+                      <FormField
+                          control={form.control}
+                          name="includeInGeneral"
+                          render={({ field }) => (
+                              <FormItem>
+                                  <FormControl>
+                                      <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isPending || isProcessing} />
+                                  </FormControl>
+                              </FormItem>
+                          )}
+                      />
+                  </div>
+                )}
 
                 {isOmsk && (
                     <div className="p-4 rounded-xl border-2 border-accent/20 bg-accent/5 flex items-center justify-between shadow-inner">
