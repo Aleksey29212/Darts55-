@@ -33,7 +33,7 @@ export default async function TournamentDetailsPage({
     const playersWithCalculatedPoints = tournamentData.players.map(player => {
         // Create a copy to avoid mutating the original object from the cache
         const playerCopy = { ...player };
-        calculatePlayerPoints(playerCopy, scoringSettings);
+        calculatePlayerPoints(playerCopy, scoringSettings, tournamentData.league);
         return playerCopy;
     });
 
