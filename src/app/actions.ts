@@ -249,6 +249,10 @@ export async function importTournament(prevState: unknown, formData: FormData) {
         await addTournaments(db, tournamentsToCreate);
     }
 
+    if (tournamentsToCreate.length === 0 && errors.length > 0) {
+        return { success: false, message: `Импорт не удался. Ошибки: ${errors.join('; ')}` };
+    }
+
     revalidateTag('rankings');
     revalidatePath('/', 'layout');
     return { success: true, message: `Импорт завершен. Успешно: ${tournamentsToCreate.length}. Ошибок: ${errors.length > 0 ? errors.join('; ') : '0'}` };
