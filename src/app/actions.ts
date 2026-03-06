@@ -236,7 +236,7 @@ export async function importTournament(prevState: unknown, formData: FormData) {
     revalidatePath('/', 'layout');
     return { success: true, message: `Импорт завершен. Успешно: ${tournamentsToCreate.length}. Ошибок: ${errors.length > 0 ? errors.join('; ') : '0'}` };
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Произошла непредвиденная ошибка во время импорта.';
+    const message = error instanceof Error ? `Критическая ошибка записи в БД: ${error.message}` : 'Произошла непредвиденная ошибка во время записи данных в базу. Проверьте права доступа Firestore.';
     console.error("Критическая ошибка импорта:", error);
     return { success: false, message };
   }
