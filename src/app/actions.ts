@@ -208,6 +208,10 @@ export async function importTournament(prevState: unknown, formData: FormData) {
           results.push(playerResult);
         });
 
+        if (results.length === 0) {
+            throw new Error('Не найдено ни одного игрока в таблице результатов.');
+        }
+
         tournamentsToCreate.push({
           id: tournamentId, 
           name: tournamentName,
