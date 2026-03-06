@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from './ui/button';
 import Image from 'next/image';
-import type { Player } from '@/lib/types';
+import type { PlayerProfile } from '@/lib/types';
 import { updatePlayerAvatar } from '@/app/actions';
 import { useRouter } from 'next/navigation';
 import ReactCrop, {
@@ -67,7 +67,7 @@ function getCroppedImg(
   });
 }
 
-export function PhotoUploader({ players }: { players: Player[] }) {
+export function PhotoUploader({ players }: { players: PlayerProfile[] }) {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [crop, setCrop] = useState<CropType>();
