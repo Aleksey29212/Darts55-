@@ -1,22 +1,14 @@
-'use client';
-
 import { ImportForm } from "@/components/import-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClearTournamentsButton } from "./clear-button";
 import { TournamentManagement } from "./tournament-management";
 import type { LeagueId, Tournament, AllLeagueSettings, League } from "@/lib/types";
-import { useCollection, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection, doc } from "firebase/firestore";
-import { Skeleton } from "@/components/ui/skeleton";
+import { getTournaments } from "@/lib/tournaments";
+import { getLeagueSettings } from "@/lib/settings";
 
-export default function TournamentsAdminPage() {
-    const db = useFirestore();
-
-    const tournamentsQuery = useMemoFirebase(() => db ? collection(db, 'tournaments') : null, [db]);
-    const { data: tournaments, isLoading: isLoadingTournaments } = useCollection<Tournament>(tournamentsQuery);
-
-    const leagueSettingsRef = useMemoFirebase(() => db ? doc(db, 'app_settings', 'leagues') : null, [db]);
-    const { data: leagueSettingsData, isLoading: isLoadingLeagues } = useDoc<AllLeagueSettings>(leagueSettingsRef);
+export default async function TournamentsAdminPage() {
+    const tournaments = await getTournaments();
+    const leagueSettingsData = await getLeagueSettings();
 
     const leagueSettings = leagueSettingsData || {
         general: { enabled: true, name: 'Общий рейтинг' },
@@ -35,27 +27,11 @@ export default function TournamentsAdminPage() {
         enabled: leagueSettings[key].enabled
     }));
 
-    const isLoading = isLoadingTournaments || isLoadingLeagues;
-
     return (
         <div className="grid gap-8">
             <ImportForm leagues={leagues} />
 
-            {isLoading ? (
-                <Card className="glassmorphism">
-                    <CardHeader>
-                        <Skeleton className="h-6 w-1/2" />
-                        <Skeleton className="h-4 w-3/4" />
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                    </CardContent>
-                </Card>
-            ) : (
-                <TournamentManagement tournaments={tournaments || []} leagues={leagues} />
-            )}
+            <TournamentManagement tournaments={tournaments} leagues={leagues} />
             
             <Card className="glassmorphism border-destructive">
                 <CardHeader>
