@@ -151,8 +151,13 @@ export async function importTournament(prevState: unknown, formData: FormData) {
           else if (txt.includes('игрок') || txt.includes('player') || txt === 'имя') headerMap['name'] = i;
         });
         
-        const rankIdx = headerMap['rank'] ?? 0;
-        const nameIdx = headerMap['name'] ?? (rankIdx === 0 ? 1 : 0);
+        // Critical Check: Ensure essential columns were found
+        if (headerMap['name'] === undefined || headerMap['rank'] === undefined) {
+            throw new Error('Не удалось определить колонки "Игрок" и "Место" в таблице.');
+        }
+
+        const rankIdx = headerMap['rank'];
+        const nameIdx = headerMap['name'];
 
         const results: TournamentPlayerResult[] = [];
         table.find('tbody tr').each((i, row) => {
