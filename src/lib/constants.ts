@@ -1,24 +1,3 @@
-
-export const stageToRankMap: Record<string, number> = {
-    'победитель': 1,
-    'победа': 1,
-    '1 место': 1,
-    'финал': 2,
-    '2 место': 2,
-    '1/2': 3,
-    'полуфинал': 3,
-    '3-4': 3,
-    '1/4': 5,
-    'четвертьфинал': 5,
-    '5-8': 5,
-    '1/8': 9,
-    '9-16': 9,
-    '1/16': 17,
-    'резерв': 17,
-};
-
-export const PRO_NICKNAMES = [
-    "Снайпер", "Молния", "Танк", "Ястреб", "Вихрь", "Стрела", "Профи", "Легенда", 
-    "Аллигатор", "Гром", "Авиатор", "Тигр", "Мастер", "Крепость", "Феникс", "Скорпион",
-    "Voltage", "The Power", "Warrior", "Bullseye", "The Machine", "Titan", "Ace"
-];
+// This file is deprecated. The constants have been moved back into src/app/actions.ts
+// to consolidate the import logic and resolve 'use server' module conflicts.
+// This file can be safely removed in a future cleanup.
