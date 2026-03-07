@@ -93,7 +93,7 @@ export async function getTournaments(): Promise<Tournament[]> {
   }
 }
 
-export async function addTournaments(db: Firestore, newTournaments: Omit<Tournament, 'id'>[]): Promise<string[]> {
+export async function addTournaments(db: Firestore, newTournaments: Tournament[]): Promise<string[]> {
     if (!newTournaments || newTournaments.length === 0) return [];
     
     try {
@@ -101,20 +101,19 @@ export async function addTournaments(db: Firestore, newTournaments: Omit<Tournam
         const actuallyAddedIds: string[] = [];
 
         for (const newT of newTournaments) {
-            const docId = (newT as Tournament).id;
+            const { id: docId, ...dataToSetRest } = newT;
             const docRef = doc(db, 'tournaments', docId);
 
-            const eventDateValue = newT.eventDate || newT.date || new Date();
-            const parsedAtValue = newT.parsedAt || new Date();
+            const eventDateValue = dataToSetRest.eventDate || dataToSetRest.date || new Date();
+            const parsedAtValue = dataToSetRest.parsedAt || new Date();
 
             const dataToSet = { 
-                ...newT, 
+                ...dataToSetRest, 
                 eventDate: Timestamp.fromDate(valueToDate(eventDateValue) || new Date()),
                 parsedAt: Timestamp.fromDate(valueToDate(parsedAtValue) || new Date()),
                 date: Timestamp.fromDate(valueToDate(eventDateValue) || new Date())
             };
             
-            delete (dataToSet as any).id;
             batch.set(docRef, dataToSet);
             actuallyAddedIds.push(docId);
         }

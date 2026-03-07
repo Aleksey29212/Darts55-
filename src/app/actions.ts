@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getPlayerProfiles, updatePlayerProfiles, clearAllPlayerProfiles } from '@/lib/players';
@@ -68,7 +67,7 @@ export async function importTournament(prevState: unknown, formData: FormData) {
     const playerProfiles = await getPlayerProfiles();
     const playerProfileMap = new Map(playerProfiles.map(p => [p.id, p]));
     const allNewPlayerProfiles: PlayerProfile[] = [];
-    const tournamentsToCreate: Omit<Tournament, 'id'>[] = [];
+    const tournamentsToCreate: Tournament[] = [];
     const errors: string[] = [];
     const parsedAtDate = new Date().toISOString();
 
@@ -285,7 +284,7 @@ export async function importTournament(prevState: unknown, formData: FormData) {
           parsedAt: parsedAtDate,
           league, 
           players: results,
-        } as any);
+        });
 
       } catch (e: unknown) {
         const errorMessage = e instanceof Error ? e.message : 'Неизвестная ошибка парсинга';
