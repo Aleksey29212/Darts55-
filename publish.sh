@@ -27,9 +27,9 @@ if [ ! -d ".git" ]; then
     git remote add origin "$REPO_URL_WITH_TOKEN"
 fi
 
-# --- Конфигурация пользователя (на случай, если не задано глобально) ---
-git config --global user.email "action@github.com"
-git config --global user.name "DartBrig Pro Sync"
+# --- Конфигурация пользователя (локально для этого репозитория) ---
+git config user.email "action@github.com"
+git config user.name "DartBrig Pro Sync"
 
 # --- Добавление всех файлов в отслеживание ---
 echo "📝 Индексирую все изменения..."
