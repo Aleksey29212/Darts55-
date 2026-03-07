@@ -210,7 +210,7 @@ export async function importTournament(prevState: unknown, formData: FormData) {
           const name = nameCell.find('a').text().trim() || nameCell.text().trim();
           if (!name) return;
 
-          let pId = nameCell.find('a').attr('href')?.split('/').pop() || name.replace(/\s+/g, '-').toLowerCase();
+          let pId = nameCell.find('a').attr('href')?.split('/').filter(Boolean).pop() || name.replace(/\s+/g, '-').toLowerCase();
           pId = pId.replace(/[./\\[\\]*]/g, '_');
           if (pId.startsWith('__') && pId.endsWith('__') && pId.length > 4) {
             pId = pId.substring(2, pId.length - 2);
@@ -468,7 +468,7 @@ export async function saveSponsorshipAction(data: SponsorshipSettings) {
         revalidatePath('/', 'layout');
         return { success: true, message: 'Настройки спонсорства обновлены.' };
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Ошибка сохранения спонсорства';
+        const message = e instanceof Error ? e.message : 'Ошибка сохранения спонсорства';
         return { success: false, message };
     }
 }
