@@ -123,6 +123,10 @@ export async function importTournament(prevState: unknown, formData: FormData) {
       }
       
       const { id: tournamentId, html } = result;
+      if (!html) {
+        errors.push(`Турнир #${tournamentId}: пустой HTML.`);
+        continue;
+      }
 
       try {
         const $ = cheerio.load(html);
@@ -151,8 +155,8 @@ export async function importTournament(prevState: unknown, formData: FormData) {
         if (table.length === 0) {
             let maxRows = 0;
             let largestTable: cheerio.Cheerio | null = null;
-            $('table').each(function() {
-                const currentTable = $(this);
+            $('table').each((i, el) => {
+                const currentTable = $(el);
                 const rows = currentTable.find('tr').length;
                 if (rows > maxRows) {
                     maxRows = rows;

@@ -128,7 +128,7 @@ export function PlayerRatingChart({ tournaments, isStandalone = true }: PlayerRa
                 content={
                   <ChartTooltipContent
                     className="glassmorphism border-primary/20 min-w-[220px] p-5 shadow-3xl"
-                    formatter={(value, name, item, index) => {
+                    formatter={(value: any, name: any, item: any, index: number) => {
                       const payload = item.payload || {};
                       return (
                         <div key={`tooltip-pts-${index}`} className="flex flex-col gap-4">

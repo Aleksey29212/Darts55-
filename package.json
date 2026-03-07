@@ -6,10 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3000",
-    "typecheck": "tsc --noEmit",
     "github-push": "bash publish.sh"
   },
   "dependencies": {
+    "@genkit-ai/googleai": "0.5.0",
     "@hookform/resolvers": "^3.2.0",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-alert-dialog": "^1.0.5",
@@ -38,14 +38,19 @@
     "embla-carousel-autoplay": "^8.1.5",
     "embla-carousel-react": "^8.1.5",
     "firebase": "11.9.1",
+    "genkit": "0.5.0",
     "lucide-react": "^0.395.0",
     "next": "^14.2.3",
     "react": "18.2.0",
+    "react-day-picker": "^8.10.1",
     "react-dom": "18.2.0",
+    "react-dropzone": "^14.2.3",
     "react-hook-form": "^7.46.0",
+    "react-image-crop": "^11.0.5",
+    "recharts": "^2.12.7",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "3.24.1"
+    "zod": "3.23.8"
   },
   "devDependencies": {
     "@types/cheerio": "^0.22.35",

@@ -5,7 +5,7 @@ import type { LeagueId, Player, AllLeagueSettings, ScoringSettings } from '@/lib
 import { LeaderboardHero } from '@/components/leaderboard-hero';
 import { PlayerRankings } from '@/components/player-rankings';
 import { cn } from '@/lib/utils';
-import { Trophy, Shield, Star, Award, Users, Baby, Venus, Sparkles, Moon } from 'lucide-react';
+import { Trophy, Shield, Star, Award, Users, Baby, PersonStanding as Venus, Sparkles, Moon } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface LeaguePanelsProps {

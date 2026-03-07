@@ -288,8 +288,8 @@ export function PhotoUploader({ players }: { players: PlayerProfile[] }) {
           <div className="p-4 border rounded-lg bg-black/20 flex justify-center">
              <ReactCrop
                 crop={crop}
-                onChange={(_, percentCrop) => setCrop(percentCrop)}
-                onComplete={(c) => setCompletedCrop(c)}
+                onChange={(_crop: CropType, percentCrop: CropType) => setCrop(percentCrop)}
+                onComplete={(c: PixelCrop) => setCompletedCrop(c)}
                 aspect={1}
                 minWidth={100}
              >

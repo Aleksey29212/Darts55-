@@ -94,7 +94,7 @@ const generatePlayerCardStylingFlow = ai.defineFlow(
     inputSchema: GeneratePlayerCardStylingInputSchema,
     outputSchema: GeneratePlayerCardStylingOutputSchema,
   },
-  async input => {
+  async (input: GeneratePlayerCardStylingInput) => {
     const {output} = await stylingPrompt(input);
     return output!;
   }

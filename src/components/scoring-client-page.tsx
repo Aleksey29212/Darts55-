@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import type { AllLeagueSettings, LeagueId, ScoringSettings } from '@/lib/types';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Trophy, Shield, Star, Award, Users, Baby, Venus, Moon } from 'lucide-react';
+import { Trophy, Shield, Star, Award, Users, Baby, PersonStanding as Venus, Moon } from 'lucide-react';
 
 
 const leagueVisuals: Record<string, { icon: React.ElementType; color: string }> = {

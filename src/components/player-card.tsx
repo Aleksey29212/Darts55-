@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
-import { Save, Edit, X, Info, Zap, Handshake, Star, Sparkles, Trophy, Shield, Award, Users, Baby, Venus, Moon, Target, Flame } from 'lucide-react';
+import { Save, Edit, X, Info, Zap, Handshake, Star, Sparkles, Trophy, Shield, Award, Users, Baby, PersonStanding as Venus, Moon, Target, Flame } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { TemplateId } from './template-switcher';
 import { cn } from '@/lib/utils';

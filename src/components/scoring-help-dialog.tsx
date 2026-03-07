@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Trophy, Shield, Award, Star, Users, Baby, Venus, CircleHelp, Moon } from 'lucide-react';
+import { Trophy, Shield, Award, Star, Users, Baby, PersonStanding as Venus, CircleHelp, Moon } from 'lucide-react';
 import type { ScoringSettings, LeagueId, AllLeagueSettings } from '@/lib/types';
 import { ScrollArea } from './ui/scroll-area';
 import { cn } from '@/lib/utils';
