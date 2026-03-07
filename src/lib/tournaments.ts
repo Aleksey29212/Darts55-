@@ -1,5 +1,6 @@
 
 
+
 import { collection, doc, getDocs, deleteDoc, writeBatch, Timestamp, getDoc, type Firestore } from 'firebase/firestore';
 import { getDb } from '@/firebase/server';
 import type { Tournament, TournamentPlayerResult } from './types';

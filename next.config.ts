@@ -1,2 +1,2 @@
-// This file is intentionally left blank.
-// Configuration has been moved to next.config.js to resolve a server startup issue.
+// This file is deprecated and has been intentionally left blank.
+// All configuration has been consolidated into next.config.js for consistency.
