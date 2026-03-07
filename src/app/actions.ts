@@ -138,7 +138,25 @@ export async function importTournament(prevState: unknown, formData: FormData) {
             return h.includes('стадия') || h.includes('место') || h.includes('игрок') || h.includes('avg') || h.includes('имя');
         }).first();
         
-        if (table.length === 0) table = $('table').first();
+        if (table.length === 0) {
+            let maxRows = 0;
+            let largestTable: cheerio.Cheerio | null = null;
+            $('table').each(function() {
+                const currentTable = $(this);
+                const rows = currentTable.find('tr').length;
+                if (rows > maxRows) {
+                    maxRows = rows;
+                    largestTable = currentTable;
+                }
+            });
+            if (largestTable) {
+                table = largestTable;
+            }
+        }
+        
+        if (table.length === 0) {
+            throw new Error('Не найдено ни одной таблицы на странице.');
+        }
 
         const headerMap: Record<string, number> = {};
         table.find('thead tr th').each((i, el) => {
@@ -159,7 +177,7 @@ export async function importTournament(prevState: unknown, formData: FormData) {
           if (txt.includes('место') || txt === '#' || txt.includes('rank') || txt.includes('стадия')) {
             headerMap['rank'] = i;
           }
-          if (txt.includes('игрок') || txt.includes('player') || txt === 'имя') {
+          if (txt.includes('игрок') || txt.includes('player') || txt.includes('имя')) {
             headerMap['name'] = i;
           }
         });
