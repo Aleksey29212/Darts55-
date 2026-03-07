@@ -1,11 +1,12 @@
 {
-  "name": "darts55-firebase",
+  "name": "dartbrig-pro",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3000",
+    "typecheck": "tsc --noEmit",
     "github-push": "bash publish.sh"
   },
   "dependencies": {
