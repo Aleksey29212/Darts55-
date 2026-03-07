@@ -40,17 +40,16 @@ function sanitizePlayer(p: any): TournamentPlayerResult {
 // Helper to safely convert various date formats to a JS Date object
 function valueToDate(value: any): Date | null {
   if (!value) return null;
-
-  if (value instanceof Timestamp) {
+  
+  // Use duck-typing for robust Timestamp detection
+  if (typeof value === 'object' && value !== null && typeof value.toDate === 'function') {
     return value.toDate();
   }
+
   if (value instanceof Date) {
     return value;
   }
-  // Handle Firestore-like object that might not be a Timestamp instance
-  if (typeof value === 'object' && value !== null && 'seconds' in value && 'nanoseconds' in value) {
-      return new Timestamp(value.seconds, value.nanoseconds).toDate();
-  }
+  
   if (typeof value === 'string' || typeof value === 'number') {
     const d = new Date(value);
     if (!isNaN(d.getTime())) {
