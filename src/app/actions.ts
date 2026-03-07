@@ -135,7 +135,7 @@ export async function importTournament(prevState: unknown, formData: FormData) {
         
         let table = $('table').filter((i, el) => {
             const h = $(el).find('thead th').text().toLowerCase();
-            return h.includes('стадия') || h.includes('место') || h.includes('игрок') || h.includes('avg');
+            return h.includes('стадия') || h.includes('место') || h.includes('игрок') || h.includes('avg') || h.includes('имя');
         }).first();
         
         if (table.length === 0) table = $('table').first();
@@ -178,12 +178,15 @@ export async function importTournament(prevState: unknown, formData: FormData) {
 
           const getTxt = (idx: number | undefined) => idx !== undefined ? $(cols[idx]).text().trim() : '';
           
-          const rankTxt = getTxt(rankIdx).toLowerCase();
           let rank = 0;
-          for (const [k, v] of Object.entries(stageToRankMap)) {
-              if (rankTxt.includes(k)) { rank = v; break; }
+          if(rankIdx !== undefined){
+              const rankTxt = getTxt(rankIdx).toLowerCase();
+              for (const [k, v] of Object.entries(stageToRankMap)) {
+                  if (rankTxt.includes(k)) { rank = v; break; }
+              }
+              if (rank === 0) rank = parseInt(rankTxt, 10) || 0;
           }
-          if (rank === 0) rank = parseInt(rankTxt, 10) || (i + 1);
+          if (rank === 0) rank = i + 1;
           
           const nameCell = cols.eq(nameIdx);
           const name = nameCell.find('a').text().trim() || nameCell.text().trim();
