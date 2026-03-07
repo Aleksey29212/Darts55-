@@ -126,8 +126,8 @@ export async function importTournament(prevState: unknown, formData: FormData) {
 
       try {
         const $ = cheerio.load(html);
-        const h1Text = $('h1').text().trim();
-        let tournamentName = $('h1').clone().find('span').remove().end().text().trim() || `Турнир #${tournamentId}`;
+        const h1Text = $('h1').first().text().trim();
+        let tournamentName = $('h1').first().clone().find('span').remove().end().text().trim() || `Турнир #${tournamentId}`;
         
         let tournamentDate: Date | null = null;
         const datePattern = /(\d{1,2})[./-](\d{1,2})[./-](\d{4})/;
@@ -359,7 +359,7 @@ export async function deletePlayerAction(playerId: string) {
         revalidatePath('/', 'layout');
         return { success: true, message: 'Профиль игрока удален.' };
     } catch (error: unknown) {
-        const message = e instanceof Error ? e.message : 'Неизвестная ошибка при удалении игрока';
+        const message = error instanceof Error ? error.message : 'Неизвестная ошибка при удалении игрока';
         return { success: false, message };
     }
 }
