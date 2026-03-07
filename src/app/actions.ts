@@ -177,7 +177,7 @@ export async function importTournament(prevState: unknown, formData: FormData) {
           if (txt.includes('место') || txt === '#' || txt.includes('rank') || txt.includes('стадия')) {
             headerMap['rank'] = i;
           }
-          if (txt.includes('игрок') || txt.includes('player') || txt.includes('имя')) {
+          if (txt.includes('игрок') || txt.includes('player') || txt.includes('имя') || txt.includes('участник')) {
             headerMap['name'] = i;
           }
         });
