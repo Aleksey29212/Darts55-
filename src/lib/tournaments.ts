@@ -93,9 +93,14 @@ export async function getTournaments(): Promise<Tournament[]> {
   }
 }
 
-export async function addTournaments(db: Firestore, newTournaments: Tournament[]): Promise<string[]> {
+export async function addTournaments(newTournaments: Tournament[]): Promise<string[]> {
     if (!newTournaments || newTournaments.length === 0) return [];
     
+    const db = getDb();
+    if (!db) {
+      throw new Error("Database not available. Cannot add tournaments.");
+    }
+
     try {
         const batch = writeBatch(db);
         const actuallyAddedIds: string[] = [];

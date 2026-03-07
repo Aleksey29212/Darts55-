@@ -83,7 +83,11 @@ export async function getPlayerProfileById(id: string): Promise<PlayerProfile | 
   return undefined;
 }
 
-export async function updatePlayerProfiles(db: Firestore, players: PlayerProfile[]): Promise<void> {
+export async function updatePlayerProfiles(players: PlayerProfile[]): Promise<void> {
+  const db = getDb();
+  if (!db) {
+    throw new Error(`Ошибка Firestore: не удалось подключиться к базе данных.`);
+  }
   try {
     const batch = writeBatch(db);
     players.forEach(player => {
@@ -97,7 +101,11 @@ export async function updatePlayerProfiles(db: Firestore, players: PlayerProfile
   }
 }
 
-export async function clearAllPlayerProfiles(db: Firestore): Promise<void> {
+export async function clearAllPlayerProfiles(): Promise<void> {
+  const db = getDb();
+  if (!db) {
+    throw new Error("Database not available. Cannot clear player profiles.");
+  }
   try {
     const playersCol = collection(db, 'players');
     const snapshot = await getDocs(playersCol);

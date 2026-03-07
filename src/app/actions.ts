@@ -43,11 +43,6 @@ function getRandomNickname() {
 
 export async function importTournament(prevState: unknown, formData: FormData) {
   try {
-    const db = getDb();
-    if (!db) {
-      return { success: false, message: 'Критическая ошибка: Не удалось подключиться к базе данных. Проверьте переменные окружения Firebase в панели управления вашего хостинга.' };
-    }
-
     const tournamentIdsRaw = formData.get('tournamentId');
     const league = formData.get('league') as LeagueId;
 
@@ -293,10 +288,10 @@ export async function importTournament(prevState: unknown, formData: FormData) {
     }
 
     if (allNewPlayerProfiles.length > 0) {
-        await updatePlayerProfiles(db, allNewPlayerProfiles);
+        await updatePlayerProfiles(allNewPlayerProfiles);
     }
     if (tournamentsToCreate.length > 0) {
-        await addTournaments(db, tournamentsToCreate);
+        await addTournaments(tournamentsToCreate);
     }
 
     if (tournamentsToCreate.length === 0 && errors.length > 0) {
@@ -314,12 +309,8 @@ export async function importTournament(prevState: unknown, formData: FormData) {
 }
 
 export async function updatePlayer(player: PlayerProfile) {
-  const db = getDb();
-  if (!db) {
-      return { success: false, message: 'Ошибка базы данных: нет подключения.' };
-  }
   try {
-    await updatePlayerProfiles(db, [player]);
+    await updatePlayerProfiles([player]);
     revalidateTag('rankings');
     revalidatePath('/', 'layout');
     return { success: true, message: 'Данные игрока обновлены.' };
@@ -374,12 +365,8 @@ export async function deletePlayerAction(playerId: string) {
 }
 
 export async function clearAllPlayerData() {
-  const db = getDb();
-  if (!db) {
-    return { success: false, message: 'Ошибка: База данных недоступна.' };
-  }
   try {
-    await clearAllPlayerProfiles(db);
+    await clearAllPlayerProfiles();
     await clearAllTournamentData();
     revalidateTag('rankings');
     revalidatePath('/', 'layout');
@@ -391,10 +378,6 @@ export async function clearAllPlayerData() {
 }
 
 export async function clearTournamentsAction() {
-  const db = getDb();
-  if (!db) {
-    return { success: false, message: 'Ошибка: База данных недоступна.' };
-  }
   try {
     await clearAllTournamentData();
     revalidateTag('rankings');
