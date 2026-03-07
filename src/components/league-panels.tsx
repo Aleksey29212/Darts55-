@@ -5,7 +5,7 @@ import type { LeagueId, Player, AllLeagueSettings, ScoringSettings } from '@/lib
 import { LeaderboardHero } from '@/components/leaderboard-hero';
 import { PlayerRankings } from '@/components/player-rankings';
 import { cn } from '@/lib/utils';
-import { Trophy, Shield, Star, Award, Users, Baby, PersonStanding as Venus, Sparkles, Moon } from 'lucide-react';
+import { Trophy, Shield, Star, Award, Users, Baby, PersonStanding, Sparkles, Moon } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface LeaguePanelsProps {
@@ -23,7 +23,7 @@ const leagueVisuals: Record<string, { icon: React.ElementType; color: string; bo
     cricket: { icon: Star, color: 'text-gold', border: 'border-gold/50', bg: 'bg-gold/10', iconBg: 'bg-gold', text: 'text-black' },
     senior: { icon: Users, color: 'text-blue-500', border: 'border-blue-500/50', bg: 'bg-blue-500/10', iconBg: 'bg-blue-500', text: 'text-white' },
     youth: { icon: Baby, color: 'text-emerald-500', border: 'border-emerald-500/50', bg: 'bg-emerald-500/10', iconBg: 'bg-emerald-500', text: 'text-white' },
-    women: { icon: Venus, color: 'text-pink-500', border: 'border-pink-500/50', bg: 'bg-pink-500/10', iconBg: 'bg-pink-500', text: 'text-white' },
+    women: { icon: PersonStanding, color: 'text-pink-500', border: 'border-pink-500/50', bg: 'bg-pink-500/10', iconBg: 'bg-pink-500', text: 'text-white' },
     evening_omsk: { icon: Moon, color: 'text-indigo-400', border: 'border-indigo-500/50', bg: 'bg-indigo-900/20', iconBg: 'bg-indigo-600', text: 'text-white' },
 };
 

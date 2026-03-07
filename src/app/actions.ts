@@ -62,7 +62,7 @@ export async function importTournament(prevState: unknown, formData: FormData) {
     const playerProfiles = await getPlayerProfiles();
     const playerProfileMap = new Map(playerProfiles.map(p => [p.id, p]));
     const allNewPlayerProfiles: PlayerProfile[] = [];
-    const tournamentsToCreate: Tournament[] = [];
+    const tournamentsToCreate: Omit<Tournament, 'id'>[] = [];
     const errors: string[] = [];
     const parsedAtDate = new Date().toISOString();
 
@@ -147,7 +147,7 @@ export async function importTournament(prevState: unknown, formData: FormData) {
 
         const eventDateFinal = tournamentDate || new Date();
         
-        let table = $('table').filter((i, el) => {
+        let table = $('table').filter(function(i, el) {
             const h = $(el).find('thead th').text().toLowerCase();
             return h.includes('стадия') || h.includes('место') || h.includes('игрок') || h.includes('avg') || h.includes('имя') || h.includes('участник');
         }).first();
@@ -155,7 +155,7 @@ export async function importTournament(prevState: unknown, formData: FormData) {
         if (table.length === 0) {
             let maxRows = 0;
             let largestTable: cheerio.Cheerio | null = null;
-            $('table').each((i, el) => {
+            $('table').each(function(i, el) {
                 const currentTable = $(el);
                 const rows = currentTable.find('tr').length;
                 if (rows > maxRows) {
@@ -173,7 +173,7 @@ export async function importTournament(prevState: unknown, formData: FormData) {
         }
 
         const headerMap: Record<string, number> = {};
-        table.find('thead tr th').each((i, el) => {
+        table.find('thead tr th').each(function(i, el) {
           const txt = $(el).text().trim().toLowerCase();
           
           if (txt === 'avg' || txt === 'ср' || txt === 'ср.' || txt === 'average') {
@@ -199,7 +199,7 @@ export async function importTournament(prevState: unknown, formData: FormData) {
         const nameIdx = headerMap['name'];
 
         const results: TournamentPlayerResult[] = [];
-        table.find('tbody tr').each((i, row) => {
+        table.find('tbody tr').each(function(i, row) {
           const cols = $(row).find('td');
           if (cols.length < 2) return;
 
@@ -219,9 +219,12 @@ export async function importTournament(prevState: unknown, formData: FormData) {
           const name = nameCell.find('a').text().trim() || nameCell.text().trim();
           if (!name) return;
 
-          let pId = nameCell.find('a').attr('href')?.split('/').filter(Boolean).pop() || name.replace(/\s+/g, '-').toLowerCase();
+          const href = nameCell.find('a').attr('href');
+          let pId = href ? href.split('/').filter(Boolean).pop() : undefined;
+          if (!pId) {
+            pId = name.replace(/\s+/g, '-').toLowerCase();
+          }
           
-          // Sanitize ID immediately for consistent lookups and storage
           pId = pId.replace(/[./\\[\\]*]/g, '_');
           if (pId.startsWith('__') && pId.endsWith('__') && pId.length > 4) {
             pId = pId.substring(2, pId.length - 2);
@@ -290,7 +293,7 @@ export async function importTournament(prevState: unknown, formData: FormData) {
         await updatePlayerProfiles(allNewPlayerProfiles);
     }
     if (tournamentsToCreate.length > 0) {
-        await addTournaments(tournamentsToCreate);
+        await addTournaments(tournamentsToCreate as Tournament[]);
     }
 
     if (tournamentsToCreate.length === 0 && errors.length > 0) {

@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
-import { Save, Edit, X, Info, Zap, Handshake, Star, Sparkles, Trophy, Shield, Award, Users, Baby, PersonStanding as Venus, Moon, Target, Flame } from 'lucide-react';
+import { Save, Edit, X, Info, Zap, Handshake, Star, Sparkles, Trophy, Shield, Award, Users, Baby, PersonStanding, Moon, Target, Flame } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { TemplateId } from './template-switcher';
 import { cn } from '@/lib/utils';
@@ -38,7 +38,7 @@ const leagueVisuals: Record<string, { icon: React.ElementType; color: string; bg
     cricket: { icon: Star, color: 'text-gold', bg: 'bg-gold/20', label: 'Крикет', border: 'border-gold/30' },
     senior: { icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/20', label: 'Сеньоры', border: 'border-blue-500/30' },
     youth: { icon: Baby, color: 'text-emerald-500', bg: 'bg-emerald-500/20', label: 'Юниоры', border: 'border-emerald-500/30' },
-    women: { icon: Venus, color: 'text-pink-500', bg: 'bg-pink-500/20', label: 'Женская лига', border: 'border-pink-500/30' },
+    women: { icon: PersonStanding, color: 'text-pink-500', bg: 'bg-pink-500/20', label: 'Женская лига', border: 'border-pink-500/30' },
     evening_omsk: { icon: Moon, color: 'text-indigo-400', bg: 'bg-indigo-500/20', label: 'Вечерний Омск', border: 'border-indigo-500/30' },
 };
 

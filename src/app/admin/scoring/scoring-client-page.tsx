@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import type { AllLeagueSettings, LeagueId, ScoringSettings } from '@/lib/types';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Trophy, Shield, Star, Award, Users, Baby, PersonStanding as Venus } from 'lucide-react';
+import { Trophy, Shield, Star, Award, Users, Baby, PersonStanding, Moon } from 'lucide-react';
 
 
 const leagueVisuals: Record<string, { icon: React.ElementType; color: string }> = {
@@ -15,7 +15,8 @@ const leagueVisuals: Record<string, { icon: React.ElementType; color: string }> 
     cricket: { icon: Star, color: 'text-gold' },
     senior: { icon: Users, color: 'text-blue-500' },
     youth: { icon: Baby, color: 'text-emerald-500' },
-    women: { icon: Venus, color: 'text-pink-500' },
+    women: { icon: PersonStanding, color: 'text-pink-500' },
+    evening_omsk: { icon: Moon, color: 'text-indigo-400' },
 };
 
 
