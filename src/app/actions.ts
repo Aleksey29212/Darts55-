@@ -72,7 +72,7 @@ export async function importTournament(prevState: unknown, formData: FormData) {
     const errors: string[] = [];
     const parsedAtDate = new Date().toISOString();
 
-    for (const tournamentId of tournamentIds) {
+    const fetchPromises = tournamentIds.map(async (tournamentId) => {
       let html = '';
       const urlsToTry = [
         `https://dartsbase.ru/tournaments/${tournamentId}/stats`,
@@ -110,10 +110,21 @@ export async function importTournament(prevState: unknown, formData: FormData) {
       }
 
       if (!html) {
-          errors.push(`Турнир #${tournamentId}: Не удалось загрузить страницу турнира или на ней нет таблиц.`);
-          continue;
+        return { status: 'error', id: tournamentId, message: `Турнир #${tournamentId}: Не удалось загрузить страницу турнира или на ней нет таблиц.` };
+      }
+      return { status: 'success', id: tournamentId, html };
+    });
+
+    const fetchedHtmls = await Promise.all(fetchPromises);
+
+    for (const result of fetchedHtmls) {
+      if (result.status === 'error') {
+        errors.push(result.message);
+        continue;
       }
       
+      const { id: tournamentId, html } = result;
+
       try {
         const $ = cheerio.load(html);
         const h1Text = $('h1').text().trim();
@@ -353,7 +364,7 @@ export async function deletePlayerAction(playerId: string) {
         revalidatePath('/', 'layout');
         return { success: true, message: 'Профиль игрока удален.' };
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Неизвестная ошибка при удалении игрока';
+        const message = e instanceof Error ? e.message : 'Неизвестная ошибка при удалении игрока';
         return { success: false, message };
     }
 }
@@ -470,7 +481,7 @@ export async function saveSponsorshipAction(data: SponsorshipSettings) {
         revalidatePath('/', 'layout');
         return { success: true, message: 'Настройки спонсорства обновлены.' };
     } catch (error: unknown) {
-        const message = e instanceof Error ? e.message : 'Ошибка сохранения спонсорства';
+        const message = error instanceof Error ? error.message : 'Ошибка сохранения спонсорства';
         return { success: false, message };
     }
 }
