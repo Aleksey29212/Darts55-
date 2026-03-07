@@ -82,7 +82,8 @@ export async function importTournament(prevState: unknown, formData: FormData) {
       for (const url of urlsToTry) {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 10000);
-          
+          let success = false;
+
           try {
               const response = await fetch(url, {
                 headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
@@ -95,7 +96,7 @@ export async function importTournament(prevState: unknown, formData: FormData) {
                   const $temp = cheerio.load(tempHtml);
                   if ($temp('table').length > 0) {
                       html = tempHtml;
-                      break; 
+                      success = true;
                   }
               }
           } catch (fetchError: unknown) {
@@ -106,6 +107,10 @@ export async function importTournament(prevState: unknown, formData: FormData) {
               }
           } finally {
               clearTimeout(timeoutId);
+          }
+
+          if(success) {
+            break;
           }
       }
 
