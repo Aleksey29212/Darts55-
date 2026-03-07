@@ -105,10 +105,20 @@ function PlayerFormDialog({
         return;
     }
     
+    const dataToSave = { ...formData };
+
+    if (!dataToSave.id) {
+        dataToSave.id = dataToSave.name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    }
+
+    if (dataToSave.avatarUrl.includes('seed/newplayer')) {
+        dataToSave.avatarUrl = `https://picsum.photos/seed/${encodeURIComponent(dataToSave.id)}/400/400`;
+    }
+    
     setIsProcessing(true);
     startTransition(async () => {
         try {
-            const result = await updatePlayer(formData);
+            const result = await updatePlayer(dataToSave);
             toast({
                 title: result.success ? 'Успешно' : 'Ошибка',
                 description: result.message,
