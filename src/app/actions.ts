@@ -135,7 +135,7 @@ export async function importTournament(prevState: unknown, formData: FormData) {
         
         let table = $('table').filter((i, el) => {
             const h = $(el).find('thead th').text().toLowerCase();
-            return h.includes('стадия') || h.includes('место') || h.includes('игрок') || h.includes('avg') || h.includes('имя');
+            return h.includes('стадия') || h.includes('место') || h.includes('игрок') || h.includes('avg') || h.includes('имя') || h.includes('участник');
         }).first();
         
         if (table.length === 0) {
@@ -211,6 +211,8 @@ export async function importTournament(prevState: unknown, formData: FormData) {
           if (!name) return;
 
           let pId = nameCell.find('a').attr('href')?.split('/').filter(Boolean).pop() || name.replace(/\s+/g, '-').toLowerCase();
+          
+          // Sanitize ID immediately for consistent lookups and storage
           pId = pId.replace(/[./\\[\\]*]/g, '_');
           if (pId.startsWith('__') && pId.endsWith('__') && pId.length > 4) {
             pId = pId.substring(2, pId.length - 2);
