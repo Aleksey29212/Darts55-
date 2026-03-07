@@ -174,20 +174,15 @@ export async function importTournament(prevState: unknown, formData: FormData) {
           
           if (txt === 'avg' || txt === 'ср' || txt === 'ср.' || txt === 'average') {
             headerMap['avg'] = i;
-          }
-          if (txt.includes('hi-out') || txt.includes('hiout') || txt.includes('закрытие')) {
+          } else if (txt.includes('hi-out') || txt.includes('hiout') || txt.includes('закрытие')) {
             headerMap['hiout'] = i;
-          }
-          if (txt.includes('best') || txt.includes('лучший') || txt.includes('leg')) {
+          } else if (txt.includes('best') || txt.includes('лучший') || txt.includes('leg')) {
             headerMap['bestleg'] = i;
-          }
-          if (txt.includes('180') || txt.includes('max')) {
+          } else if (txt.includes('180') || txt.includes('max')) {
             headerMap['180'] = i;
-          }
-          if (txt.includes('место') || txt === '#' || txt.includes('rank') || txt.includes('стадия')) {
+          } else if (txt.includes('место') || txt === '#' || txt.includes('rank') || txt.includes('стадия')) {
             headerMap['rank'] = i;
-          }
-          if (txt.includes('игрок') || txt.includes('player') || txt.includes('имя') || txt.includes('участник')) {
+          } else if (txt.includes('игрок') || txt.includes('player') || txt.includes('имя') || txt.includes('участник')) {
             headerMap['name'] = i;
           }
         });
